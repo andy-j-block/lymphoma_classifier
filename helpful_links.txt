@@ -1,0 +1,8 @@
+data generation:
+https://pytorch.org/tutorials/beginner/data_loading_tutorial.html
+https://stanford.edu/~shervine/blog/pytorch-how-to-generate-data-parallel
+
+
+code examples:
+https://github.com/python-engineer/pytorchTutorial
+https://www.youtube.com/playlist?list=PLqnslRFeH2UrcDBWF5mfPGpqQDSta6VK4
