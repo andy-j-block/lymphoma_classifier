@@ -5,7 +5,7 @@ import random
 import pandas as pd
 import pickle
 
-class image_loader:
+class ImageLoader:
 
     def get_cancer_types(self, top_img_dir: str):
         self.cancer_types = [cancer_type for cancer_type in os.listdir(top_img_dir)]
@@ -51,7 +51,7 @@ class image_loader:
         print(f'Images dataframe shape: {self.df.shape}\n')
 
 
-images = image_loader()
+images = ImageLoader()
 images.get_cancer_types('./Images')
 images.get_img_dirs()
 images.load_images()

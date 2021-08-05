@@ -1,6 +1,6 @@
 import pickle
-from image_loader import image_loader
-from exploratory_data_analysis import exploratory_data_analysis
+from ImageLoader import image_loader
+from ExploratoryDataAnalysis import ExploratoryDataAnalysis
 
 def main():
 

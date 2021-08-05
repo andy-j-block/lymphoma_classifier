@@ -1,13 +1,13 @@
-import image_loader
+import ImageLoader
 import matplotlib.pyplot as plt
 import numpy as np
 import random
 import seaborn as sns
 from scipy.special import binom
 
-class exploratory_data_analysis:
+class ExploratoryDataAnalysis:
 
-    def __init__(self, image_data: image_loader):
+    def __init__(self, image_data: ImageLoader):
         self.image_data = image_data
         self.image_df = self.image_data.df
 

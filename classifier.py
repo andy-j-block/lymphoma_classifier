@@ -49,7 +49,7 @@ if hardware_checker.hosted:
     hardware_checker.colab_setup()
 
 
-from image_loader import image_loader
+from ImageLoader import image_loader
 
 image_load = image_loader()
 image_load.get_cancer_types()
