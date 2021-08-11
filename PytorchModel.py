@@ -4,10 +4,6 @@ import torch.nn as nn
 import torch
 
 
-def get_device():
-    return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-
 class PytorchModel(ABC):
     def __init__(self, model, n_cancer_types=3):
         self.model = model
@@ -22,8 +18,11 @@ class PytorchModel(ABC):
         self.requires_grad()
         pass
 
-    def send_to_device(self, device):
-        self.model.to(device)
+    def torch_device(self):
+        return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    def send_to_device(self):
+        self.model.to(self.torch_device)
 
 
 class ResnetModel(PytorchModel, models):
