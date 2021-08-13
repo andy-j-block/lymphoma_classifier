@@ -6,9 +6,11 @@ from typing import Tuple, Union
 from torch.utils.data import Dataset, DataLoader
 import torch
 import albumentations as A
+from albumentations import Compose
 import random
 import pandas as pd
 import cv2
+# from copy import deepcopy
 
 
 class PytorchImagesDataset(Dataset):
@@ -41,24 +43,24 @@ class AlbumentationsTransformations:
         self.p = p
         self.resize_factor = resize_factor #TODO img_widths_int / 4
         self.n_passes = n_passes
-
-    def get_transformations(self):
         self.training_transformations = A.Compose([A.HorizontalFlip(p=self.p),
                                                    A.VerticalFlip(p=self.p),
                                                    A.ColorJitter(p=self.p),
                                                    A.Rotate(limit=10, interpolation=cv2.BORDER_CONSTANT, p=self.p),
                                                    A.RGBShift(p=self.p)
                                                    ])
+        self.normalize_and_resize = A.Compose([A.Normalize(mean=self.tl_means, std=self.tl_stds),
+                                               A.LongestMaxSize(self.resize_factor)
+                                               ])
 
-        self.normalize_and_resize =  A.Compose([A.Normalize(mean=self.tl_means, std=self.tl_stds),
-                                                A.LongestMaxSize(self.resize_factor)
-                                                ])
+    def set_training_transformations(self, transformation_composition: Compose):
+        self.training_transformations = transformation_composition
 
 
 class KFoldIndices(KFold):
     """this class instantiates the"""
     def __init__(self, image_data: ImageLoader, n_outer_splits: int, n_inner_splits: int, shuffle: bool = True, random_state: int = 42):
-        super(KFoldIndices, self).__init__()
+        super().__init__(shuffle=shuffle, random_state=random_state)
         self.image_df = image_data.df
         self.n_outer_splits, self.n_inner_splits = n_outer_splits, n_inner_splits
         self.shuffle, self.random_state = shuffle, random_state
@@ -99,53 +101,52 @@ class KFoldIndices(KFold):
 
 
 class KFoldedDatasets(ABC):
-    @abstractmethod
-    def __init__(self, n_outer_fold: int, n_inner_fold: int, image_data: ImageLoader, kfold_idxs: KFoldIndices):
+    def __init__(self, n_outer_fold: int, n_inner_fold: int, kfold_idxs: KFoldIndices):
         self.image_df = kfold_idxs.image_df
         self.kfold_idxs = kfold_idxs
         self.n_outer_fold, self.n_inner_fold = n_outer_fold, n_inner_fold
-        self.nkf_df = self.nkf_dataframe() ###TODO is this necessary?
+        self.nkf_df = self.get_nkf_dataframe(self.n_outer_fold, self.n_inner_fold) ###TODO is this necessary?
 
     @abstractmethod
-    def nkf_dataframe(self, n_outer_fold: int, n_inner_fold: int):
+    def get_nkf_dataframe(self, n_outer_fold: int, n_inner_fold: int):
         pass
 
 
 class DFTrainKFolded(KFoldedDatasets):
     def __init__(self, n_outer_fold: int, n_inner_fold: int, kfold_idxs: KFoldIndices, phase='train'):
-        super(KFoldedDatasets, self).__init__(n_outer_fold, n_inner_fold, kfold_idxs)
+        super().__init__(n_outer_fold, n_inner_fold, kfold_idxs)
         self.phase = phase
 
-    def nkf_dataframe(self, n_outer_fold: int, n_inner_fold: int):
+    def get_nkf_dataframe(self, n_outer_fold: int, n_inner_fold: int):
         # get the full dataframes from the train and valid idxs
         df = self.image_df.iloc[self.kfold_idxs.train_idxs[(n_outer_fold, n_inner_fold)]]
-        return df.reset_index(drop=True, inplace=True)
+        return df.reset_index(drop=True)
 
 
-class DFValidationKFolded(KFoldedDatasets):
-    def __init__(self, n_outer_fold: int, n_inner_fold: int, image_data: ImageLoader, kfold_idxs: KFoldIndices, phase='valid'):
-        super(KFoldedDatasets, self).__init__(n_outer_fold, n_inner_fold, image_data, kfold_idxs)
+class DFValidKFolded(KFoldedDatasets):
+    def __init__(self, n_outer_fold: int, n_inner_fold: int, kfold_idxs: KFoldIndices, phase='valid'):
+        super().__init__(n_outer_fold, n_inner_fold, kfold_idxs)
         self.phase = phase
 
-    def nkf_dataframe(self, n_outer_fold: int, n_inner_fold: int):
+    def get_nkf_dataframe(self, n_outer_fold: int, n_inner_fold: int):
         df = self.image_df.iloc[self.kfold_idxs.valid_idxs[(n_outer_fold, n_inner_fold)]]
-        return df.reset_index(drop=True, inplace=True)
+        return df.reset_index(drop=True)
 
 
 class DFTestKFolded(KFoldedDatasets):
-    def __init__(self, n_outer_fold: int, n_inner_fold: int, image_data: ImageLoader, kfold_idxs: KFoldIndices, phase='test'):
-        super(KFoldedDatasets, self).__init__(n_outer_fold, n_inner_fold, image_data, kfold_idxs)
+    def __init__(self, n_outer_fold: int, n_inner_fold: int, kfold_idxs: KFoldIndices, phase='test'):
+        super().__init__(n_outer_fold, n_inner_fold, kfold_idxs)
         self.phase = phase
 
-    def nkf_dataframe(self, n_outer_fold: int, n_inner_fold: int = None):
+    def get_nkf_dataframe(self, n_outer_fold: int, n_inner_fold: int = None):
         df = self.image_df.iloc[self.kfold_idxs.test_idxs[self.n_outer_fold]]
-        return df.reset_index(drop=True, inplace=True)
+        return df.reset_index(drop=True)
 
 
 ###TODO rename this class?
 class TransformedData(ABC):
     @abstractmethod
-    def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidationKFolded, DFTestKFolded],
+    def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
                  transformations: AlbumentationsTransformations, hyperparameters: Hyperparameters):
         self.nkf_df = kfolded_data.nkf_df  ###TODO determine if this line in necessary
         self.outer_fold, self.inner_fold = kfolded_data.n_outer_fold, kfolded_data.n_inner_fold  ##TODO is this useful as a reference
@@ -153,9 +154,10 @@ class TransformedData(ABC):
         self.hyperparameters = hyperparameters
         self.transformed_data = pd.DataFrame()
 
+    @abstractmethod
     def normalize_resize_data(self):
         """normalize and resize original data for PyTorch"""
-        original_data = self.nkf_df.deepcopy()
+        original_data = self.nkf_df.copy(deep=True)
         for i in range(len(original_data)):
             original_data.at[i, 'img_array'] = \
                 self.transformations.normalize_and_resize(image=original_data['img_array'].values[i])['image']
@@ -167,16 +169,16 @@ class TransformedData(ABC):
 
 
 class DFTrainDataloader(TransformedData):
-    def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidationKFolded, DFTestKFolded],
+    def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
                  transformations: AlbumentationsTransformations, hyperparameters: Hyperparameters):
-        super(DFTrainDataloader, self).__init__(kfolded_data, transformations, hyperparameters)
+        super().__init__(kfolded_data, transformations, hyperparameters)
         self.generate_data()
         self.normalize_resize_data()
         self.combine_data()
         self.create_dataloader()
 
     def generate_data(self):
-        original_data = self.nkf_df.deepcopy()
+        original_data = self.nkf_df.copy(deep=True)
         label, image = original_data.columns[0], original_data.columns[1]
 
         self.generated_data = {label: [], image: []}
@@ -201,38 +203,37 @@ class DFTrainDataloader(TransformedData):
 
 
 class DFValidDataloader(TransformedData):
-    def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidationKFolded, DFTestKFolded],
+    def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
                  transformations: AlbumentationsTransformations, hyperparameters: Hyperparameters):
-        super(DFValidDataloader, self).__init__(kfolded_data, transformations, hyperparameters)
+        super().__init__(kfolded_data, transformations, hyperparameters)
         self.normalize_resize_data()
         self.create_dataloader()
 
 
 class DFTestDataloader(TransformedData):
-    def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidationKFolded, DFTestKFolded],
+    def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
                  transformations: AlbumentationsTransformations, hyperparameters: Hyperparameters):
-        super(DFTestDataloader, self).__init__(kfolded_data, transformations, hyperparameters)
+        super().__init__(kfolded_data, transformations, hyperparameters)
         self.normalize_resize_data()
         self.create_dataloader()
 
 
 class OverfitDataloader(TransformedData):
-    def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidationKFolded, DFTestKFolded],
+    def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
                  transformations: AlbumentationsTransformations, hyperparameters: Hyperparameters):
-        super(DFTestDataloader, self).__init__(kfolded_data, transformations, hyperparameters)
+        super().__init__(kfolded_data, transformations, hyperparameters)
         self.normalize_resize_data()
-        self.create_dataloader()
+        # self.create_dataloader()
 
-    def transform_overfit_data(self):
+    def normalize_resize_data(self):
         rand_idx = random.randint(0, len(self.nkf_df))
-        rand_entry = self.nkf_df.iloc[rand_idx].deepcopy()
-        transformed_data = transform_dict['normalize_resize'](image=rand_entry['img_array'])
-        transformed_data = transformed_data['image']
+        rand_entry = self.nkf_df.iloc[[rand_idx]].copy(deep=True)
+        rand_entry.at[rand_idx, 'img_array'] = self.transformations.normalize_and_resize(image=rand_entry.at[rand_idx, 'img_array'])['image']
+        self.transformed_data = rand_entry
 
-        data = {cols[0]: [rand_entry[cols[0]]],
-                cols[1]: [transformed_data]}
-        transformed_df = pd.DataFrame.from_dict(data=data)
-
+        # data = {cols[0]: [rand_entry[cols[0]]],
+        #         cols[1]: [transformed_data]}
+        # self.transformed_data = pd.DataFrame.from_dict(data=data)
 
 ##############
 
