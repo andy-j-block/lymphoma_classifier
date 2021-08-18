@@ -3,6 +3,8 @@ from ImageLoader import ImageLoader
 from ExploratoryDataAnalysis import ExploratoryDataAnalysis
 from KFolder import *
 from Hyperparameters import Hyperparameters
+from PytorchModel import *
+
 
 # images = image_loader()
 # images.get_cancer_types('./Images')
@@ -49,3 +51,8 @@ df_train_overfit_dataloader = OverfitDataloader(kfolded_data=df_train_overfit,
 df_valid_overfit_dataloader = OverfitDataloader(kfolded_data=df_valid_overfit,
                                                 transformations=albumentation_transformations,
                                                 hyperparameters=hyperparameters)
+
+
+resnet18 = ResnetModel(models.resnet18(pretrained=True))
+
+

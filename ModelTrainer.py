@@ -1,48 +1,76 @@
+import optuna
 from PytorchModel import *
+from KFolder import *
 from typing import Union
 import time
 import copy
 
+
 class ModelTrainer:
-
     ###TODO integrate data into here correctly
-    def __init__(self, model: Union[ResnetModel, VGGModel, DenseNetModel], data):
+    def __init__(self, model: Union[ResnetModel, VGGModel, DenseNetModel], kfold_idxs: KFoldIndices,
+                 transformations: AlbumentationsTransformations, hyperparameters: Hyperparameters):
         self.model = model
-        self.data = data
+        self.kfold_idxs = kfold_idxs
+        self.hyperparameters = hyperparameters
+        self.albumentation_transformations = transformations
 
-    def training_set_eval(self):
+    def create_dataloaders(self, n_outer_fold: int, n_inner_fold: int, phase: str):
+        if phase == 'train':
+            df_train = DFTrainKFolded(n_outer_fold=n_outer_fold,
+                                      n_inner_fold=n_inner_fold,
+                                      kfold_idxs=self.kfold_idxs)
+            df_train_dataloader = DFTrainDataloader(kfolded_data=df_train,
+                                                    transformations=self.albumentation_transformations,
+                                                    hyperparameters=self.hyperparameters)
+            return df_train_dataloader
+
+        elif phase == 'valid':
+            df_valid = DFValidKFolded(n_outer_fold=n_outer_fold,
+                                      n_inner_fold=n_inner_fold,
+                                      kfold_idxs=self.kfold_idxs)
+            df_valid_dataloader = DFValidDataloader(kfolded_data=df_valid,
+                                                    transformations=self.albumentation_transformations,
+                                                    hyperparameters=self.hyperparameters)
+            return df_valid_dataloader
+
+    def training_set_eval(self, phase='train'):
         self.model.train()
 
-        running_loss = 0.0
-        running_corrects = 0
+        for outer_fold in range(self.kfold_idxs.n_outer_splits):
+            for inner_fold in range(self.kfold_idxs.n_inner_splits):
+                training_dataloader = self.create_dataloaders(n_outer_fold=outer_fold, n_inner_fold=inner_fold, phase=phase)
 
-        for inputs, labels in dataloader[phase]:
-            print(labels)
-            inputs = inputs.permute([0, 3, 2, 1])
-            inputs = inputs.to(self.model.torch_device)
-            labels = labels.to(self.model.torch_device)
+                running_loss = 0.0
+                running_corrects = 0
 
-            # zero out the gradients before training
-            optimizer.zero_grad()
+                for inputs, labels in training_dataloader:
+                    print(labels)
+                    inputs = inputs.permute([0, 3, 2, 1])
+                    inputs = inputs.to(self.model.torch_device)
+                    labels = labels.to(self.model.torch_device)
 
-            # set gradient calculations ON for training
-            with torch.set_grad_enabled(phase == 'train'):
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
-                _, preds = torch.max(outputs, 1)
+                    # zero out the gradients before training
+                    optimizer.zero_grad()
+
+                    # set gradient calculations ON for training
+                    with torch.set_grad_enabled(phase == 'train'):
+                        outputs = model(inputs)
+                        loss = criterion(outputs, labels)
+                        _, preds = torch.max(outputs, 1)
+
+                        if phase == 'train':
+                            loss.backward()
+                            optimizer.step()
+
+                    running_loss += loss.item() * inputs.size(0)
+                    running_corrects += torch.sum(preds == labels.data)
 
                 if phase == 'train':
-                    loss.backward()
-                    optimizer.step()
+                    scheduler.step()
 
-            running_loss += loss.item() * inputs.size(0)
-            running_corrects += torch.sum(preds == labels.data)
-
-        if phase == 'train':
-            scheduler.step()
-
-        epoch_loss = running_loss / len(dataloader[phase].dataset)
-        epoch_acc = running_corrects.double() / len(dataloader[phase].dataset)
+                epoch_loss = running_loss / len(dataloader[phase].dataset)
+                epoch_acc = running_corrects.double() / len(dataloader[phase].dataset)
 
     def validation_set_eval(self):
         self.model.eval()
@@ -78,6 +106,31 @@ class ModelTrainer:
         val_loss_history.append(epoch_loss)
         lr_history.append(optimizer.param_groups[0]['lr'])
 
+
+    def objective(self, trial):
+        params = {
+            'batch_size': trial.suggest_int('batch_size', 1, 16),
+            'optimizer': trial.suggest_categorical('optimizer', [optim.Adam, optim.Adagrad]),
+            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-2, 1e-5),
+            'scheduler': trial.suggest_categorical('scheduler', [StepLR, ReduceLROnPlateau]),
+            'step_size': trial.suggest_int('step_size', 5, 15)
+        }
+
+
+    def run_training_optuna(self):
+        study = optuna.create_study(direction='minimize')
+        study.optimize(self.objective, n_trials=20)
+
+        best_trial = study.best_trial
+        print(best_trial.values)
+        print(best_trial.params)
+
+
+
+
+
+
+###############
 
     def training_steps(self, dataloader, model, criterion, optimizer, scheduler, epochs=25, **inputs):
         start = time.time()
