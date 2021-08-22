@@ -1,4 +1,4 @@
-import ImageLoader import ImageLoader
+from ImageLoader import ImageLoader
 from KFolder import *
 from Hyperparameters import Hyperparameters
 from PytorchModel import *
@@ -25,4 +25,3 @@ df_valid_overfit_dataloader = OverfitDataloader(kfolded_data=df_valid_overfit,
 
 
 resnet18 = ResnetModel(models.resnet18(pretrained=True))
-

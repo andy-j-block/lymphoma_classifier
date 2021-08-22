@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Union
 import torch
 import torchvision.models as models
+from torchvision.models import ResNet, VGG, DenseNet
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
@@ -19,13 +20,12 @@ from torch.optim.lr_scheduler import StepLR
 #     scheduler = StepLR(optimizer, step_size=5, verbose=True)
 
 
-class PytorchModel(ABC, models):
-    def __init__(self, model: models, n_cancer_types=3):
-        super().__init__()
+class PytorchModel(ABC):
+    def __init__(self, model: Union[ResNet, VGG, DenseNet], n_cancer_types=3):
         self.model = model
         self.n_cancer_types = n_cancer_types
         self.replace_fc_layers()
-        self.hyperparameters = self.set_hyperparameters()
+        # self.hyperparameters = self.set_hyperparameters()
         self.torch_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.send_to_device()
 
@@ -38,26 +38,38 @@ class PytorchModel(ABC, models):
         self.requires_grad()
         pass
 
-    def set_hyperparameters(self):
-        return Hyperparameters(model=self.model, batch_size=4, n_workers=2)
+    # def set_hyperparameters(self):
+    #     return Hyperparameters(model=self.model, batch_size=4, n_workers=2)
 
     def send_to_device(self):
         self.model.to(self.torch_device)
 
 
-class ResnetModel(PytorchModel):
+class ResnetModel(PytorchModel, ResNet):
+    def __init__(self, model: ResNet):
+        super(ResNet, self).__init__()
+        self.model = model
+
     def replace_fc_layers(self):
         self.requires_grad()
         self.model.fc = nn.Linear(self.model.fc.in_features, self.n_cancer_types)
 
 
-class VGGModel(PytorchModel):
+class VGGModel(PytorchModel, VGG):
+    def __init__(self, model: VGG):
+        super(VGG, self).__init__()
+        self.model = model
+
     def replace_fc_layers(self):
         self.requires_grad()
         self.model.classifier[6] = nn.Linear(4096, self.n_cancer_types)
 
 
-class DenseNetModel(PytorchModel):
+class DenseNetModel(PytorchModel, DenseNet):
+    def __init__(self, model: DenseNet):
+        super(DenseNet, self).__init__()
+        self.model = model
+
     def replace_fc_layers(self):
         self.requires_grad()
         self.model.classifier = nn.Linear(self.model.classifier.in_features, self.n_cancer_types)

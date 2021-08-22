@@ -14,20 +14,16 @@ import cv2
 
 
 class PytorchImagesDataset(Dataset):
-    def __init__(self, cancer_type, img_array, transform=None):
+    def __init__(self, cancer_type, img_array):
         self.cancer_type = cancer_type
         self.img_array = img_array
-        self.transform = transform
 
-    def __len__(self):
+    def __len__(self):  ###TODO investigate this shit code
         return len(self.cancer_type)
 
     def __getitem__(self, idx):
         img = self.img_array.iloc[idx]
         label = torch.tensor(int(self.cancer_type.iloc[idx]))
-
-        if self.transform:
-            img = self.transform(img)
         return img, label
 
 
@@ -68,6 +64,12 @@ class KFoldIndices(KFold):
         self.shuffle, self.random_state = shuffle, random_state
         self.nested_outer()
         self.nested_inner()
+
+        """TBD"""
+        self.outer_train_idxs = None
+        self.test_idxs = None
+        self.train_idxs = None
+        self.valid_idxs = None
 
     def nested_outer(self):
         """outer pass, return dicts of train and test set indices"""
@@ -161,7 +163,10 @@ class TransformedData(ABC):
         self.hyperparameters = hyperparameters
         self.transformed_data = pd.DataFrame()
 
-    @abstractmethod
+        """TBD"""
+        self.dataset = None
+        self.dataloader = None
+
     def normalize_resize_data(self):
         """normalize and resize original data for PyTorch"""
         original_data = self.nkf_df.copy(deep=True)
@@ -183,6 +188,9 @@ class DFTrainDataloader(TransformedData):
         self.normalize_resize_data()
         self.combine_data()
         self.create_dataloader()
+
+        """TBD"""
+        self.generated_data = None
 
     def generate_data(self):
         original_data = self.nkf_df.copy(deep=True)
