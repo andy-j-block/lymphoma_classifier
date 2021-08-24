@@ -1,7 +1,6 @@
 from sklearn.model_selection import KFold
 from ImageLoader import ImageLoader
 from abc import ABC, abstractmethod
-from Hyperparameters import Hyperparameters
 from typing import Tuple, Union
 from torch.utils.data import Dataset, DataLoader
 import torch
@@ -150,17 +149,19 @@ class DFTestKFolded(KFoldedDatasets):
 
 
 ###TODO rename this class?
-class TransformedData(ABC):
+class DataloaderBaseClass(ABC):
     """this abstract base class is used to create pytorch dataloaders based on the dataframes passed
        to it by any of the DFTrainKFolded, DFValidKFolded, or DFTestKFolded class objects"""
 
     @abstractmethod
     def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
-                 transformations: AlbumentationsTransformations, hyperparameters: Hyperparameters):
+                 transformations: AlbumentationsTransformations, batch_size: int, num_workers: int = 2):
         self.nkf_df = kfolded_data.nkf_df  ###TODO determine if this line in necessary
         self.outer_fold, self.inner_fold = kfolded_data.n_outer_fold, kfolded_data.n_inner_fold  ##TODO is this useful as a reference
         self.transformations = transformations
-        self.hyperparameters = hyperparameters
+        #self.hyperparameters = hyperparameters     ###TODO possibly eliminate this reference
+        self.batch_size = batch_size
+        self.num_workers = num_workers
         self.transformed_data = pd.DataFrame()
 
         """TBD"""
@@ -177,13 +178,13 @@ class TransformedData(ABC):
 
     def create_dataloader(self):
         self.dataset = PytorchImagesDataset(self.transformed_data['cancer_type'], self.transformed_data['img_array'])
-        self.dataloader = DataLoader(self.dataset, batch_size=self.hyperparameters.batch_size, num_workers=self.hyperparameters.n_workers)
+        self.dataloader = DataLoader(self.dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
 
-class DFTrainDataloader(TransformedData):
+class DFTrainDataloader(DataloaderBaseClass):
     def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
-                 transformations: AlbumentationsTransformations, hyperparameters: Hyperparameters):
-        super().__init__(kfolded_data, transformations, hyperparameters)
+                 transformations: AlbumentationsTransformations, batch_size: int):
+        super().__init__(kfolded_data, transformations, batch_size)
         self.generate_data()
         self.normalize_resize_data()
         self.combine_data()
@@ -217,26 +218,26 @@ class DFTrainDataloader(TransformedData):
         self.transformed_data = pd.concat([generated_data, self.transformed_data], ignore_index=True)
 
 
-class DFValidDataloader(TransformedData):
+class DFValidDataloader(DataloaderBaseClass):
     def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
-                 transformations: AlbumentationsTransformations, hyperparameters: Hyperparameters):
-        super().__init__(kfolded_data, transformations, hyperparameters)
+                 transformations: AlbumentationsTransformations, batch_size: int):
+        super().__init__(kfolded_data, transformations, batch_size)
         self.normalize_resize_data()
         self.create_dataloader()
 
 
-class DFTestDataloader(TransformedData):
+class DFTestDataloader(DataloaderBaseClass):
     def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
-                 transformations: AlbumentationsTransformations, hyperparameters: Hyperparameters):
-        super().__init__(kfolded_data, transformations, hyperparameters)
+                 transformations: AlbumentationsTransformations, batch_size: int):
+        super().__init__(kfolded_data, transformations, batch_size)
         self.normalize_resize_data()
         self.create_dataloader()
 
 
-class OverfitDataloader(TransformedData):
+class OverfitDataloader(DataloaderBaseClass):
     def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
-                 transformations: AlbumentationsTransformations, hyperparameters: Hyperparameters):
-        super().__init__(kfolded_data, transformations, hyperparameters)
+                 transformations: AlbumentationsTransformations, batch_size: int):
+        super().__init__(kfolded_data, transformations, batch_size)
         self.normalize_resize_data()
         # self.create_dataloader()
 

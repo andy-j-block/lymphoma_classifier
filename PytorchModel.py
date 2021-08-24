@@ -1,11 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Union
 import torch
-import torchvision.models as models
 from torchvision.models import ResNet, VGG, DenseNet
 import torch.nn as nn
-import torch.optim as optim
-from torch.optim.lr_scheduler import StepLR
 
 # class Hyperparameters:
 #     batch_size: int
@@ -75,16 +72,16 @@ class DenseNetModel(PytorchModel, DenseNet):
         self.model.classifier = nn.Linear(self.model.classifier.in_features, self.n_cancer_types)
 
 
-class Hyperparameters:
-    batch_size: int
-    n_workers: int
-
-    def __init__(self, model: Union[ResnetModel, VGGModel, DenseNetModel], batch_size: int, n_workers: int,
-                 criterion: nn = nn.CrossEntropyLoss()):
-        self.model = model
-        self.batch_size = batch_size
-        self.n_workers = n_workers
-
-        self.criterion = criterion
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.01)
-        self.scheduler = StepLR(self.optimizer, step_size=5)
+# class Hyperparameters:
+#     batch_size: int
+#     n_workers: int
+#
+#     def __init__(self, model: Union[ResnetModel, VGGModel, DenseNetModel], batch_size: int, n_workers: int,
+#                  criterion: nn = nn.CrossEntropyLoss()):
+#         self.model = model
+#         self.batch_size = batch_size
+#         self.n_workers = n_workers
+#
+#         self.criterion = criterion
+#         self.optimizer = optim.Adam(self.model.parameters(), lr=0.01)
+#         self.scheduler = StepLR(self.optimizer, step_size=5)
