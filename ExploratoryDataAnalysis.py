@@ -4,6 +4,38 @@ import numpy as np
 import random
 import seaborn as sns
 from scipy.special import binom
+import os
+
+
+class JupyterLauncher:
+    cwd: str
+    conda_exists: bool
+
+    def __init__(self):
+        self.get_cwd()
+        self.create_conda_env()
+        self.launch_notebook()
+
+    def get_cwd(self):
+        self.cwd = os.getcwd()
+
+    def create_conda_env(self):
+        for _, val in os.environ.items():
+            if 'conda' in val.lower():
+                self.conda_exists = True
+                print('conda found on system')
+                break
+            else:
+                print('conda not found on system, please install and rerun')
+
+        if self.conda_exists:
+            os.system('conda env create --file envname.yml')
+            os.system('conda activate lymphoma_classifier')
+
+    def launch_notebook(self):
+        os.system(f'cd {self.cwd}')
+        os.system('jupyter notebook ExploratoryDataAnalysis.ipynb')
+
 
 class ExploratoryDataAnalysis:
 

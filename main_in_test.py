@@ -26,7 +26,7 @@ with open('image_loader.obj', 'rb') as f:
 kfolder = KFoldIndices(image_data=images,
                        n_outer_splits=3,
                        n_inner_splits=8)
-albumentation_transformations = AlbumentationsTransformations(resize_factor=4, n_passes=3)
+albumentation_transformations = AlbTrxs(resize_factor=4, n_passes=3)
 hyperparameters = Hyperparameters(batch_size=4, n_workers=2)
 #
 # df_train_kfolded = DFTrainKFolded(n_outer_fold=0,
