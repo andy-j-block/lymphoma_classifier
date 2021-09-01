@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Union, Dict
 import torch
 import torchvision.models as models
 from torchvision.models import ResNet, VGG, DenseNet
 import torch.nn as nn
 
 
-class PytorchModel(ABC):
+class ModelAbstract(ABC):
     n_cancer_types: int = 3
     torch_device: str = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -27,7 +27,7 @@ class PytorchModel(ABC):
         self.model.to(self.torch_device)
 
 
-class ResNetModel(PytorchModel, ResNet):
+class ResNetModel(ModelAbstract, ResNet):
     def __init__(self, model: ResNet):
         super(ResNet, self).__init__()
         self.model = model
@@ -39,7 +39,7 @@ class ResNetModel(PytorchModel, ResNet):
         self.model.fc = nn.Linear(self.model.fc.in_features, self.n_cancer_types)
 
 
-class VGGModel(PytorchModel, VGG):
+class VGGModel(ModelAbstract, VGG):
     def __init__(self, model: VGG):
         super(VGG, self).__init__()
         self.model = model
@@ -50,7 +50,7 @@ class VGGModel(PytorchModel, VGG):
         self.model.classifier[6] = nn.Linear(4096, self.n_cancer_types)
 
 
-class DenseNetModel(PytorchModel, DenseNet):
+class DenseNetModel(ModelAbstract, DenseNet):
     def __init__(self, model: DenseNet):
         super(DenseNet, self).__init__()
         self.model = model
@@ -61,7 +61,8 @@ class DenseNetModel(PytorchModel, DenseNet):
         self.model.classifier = nn.Linear(self.model.classifier.in_features, self.n_cancer_types)
 
 
-class ModelList:
+class PytorchAlgos:
+
     resnet18: ResNet = ResNetModel(models.resnet18(pretrained=True))
     resnet34: ResNet = ResNetModel(models.resnet34(pretrained=True))
     resnet101: ResNet = ResNetModel(models.resnet101(pretrained=True))
@@ -75,3 +76,13 @@ class ModelList:
     # densenet121: DenseNet = DenseNetModel(models.densenet121(pretrained=True))
     # densenet169: DenseNet = DenseNetModel(models.densenet169(pretrained=True))
     # densenet201: DenseNet = DenseNetModel(models.densenet201(pretrained=True))
+
+    ### TODO determine if enumerating makes sense
+    def __init__(self):
+        algo_names = [algo for algo in dir(self) if '__' not in algo]
+        self.n_algos: int = len(algo_names)
+        self.algo_dict: Dict[int, Union[ResNet, VGG, DenseNet]] = {}
+        for idx, algo in enumerate(algo_names):
+            self.algo_dict[idx] = getattr(self, f'{algo}')
+        # for idx, algo_name in enumerate(algo_names):
+        #     setattr(self, f'{algo_name.upper()}', idx)

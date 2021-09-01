@@ -1,6 +1,6 @@
 import optuna
 from optuna.trial import TrialState
-from PytorchModel import *
+from PytorchAlgos import *
 from KFolder import *
 from typing import Union, Dict, Any
 import time
@@ -9,12 +9,15 @@ from torch.optim import Adam, Adagrad
 from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 
 
-
 class ModelTrainer:
     train_dataloader: DataLoader
     train_dataset: Dataset
     valid_dataloader: DataLoader
     valid_dataset: Dataset
+    test_dataloader: DataLoader
+    test_dataset: Dataset
+
+    model: Union[ResNet, VGG, DenseNet]
 
     hyperparams: Dict[str, Any]
     optimizer: Union[Adam, Adagrad]
@@ -22,36 +25,31 @@ class ModelTrainer:
     param_importance: Dict[str, float]
 
     ###TODO integrate data into here correctly
-    def __init__(self, model: Union[ResNetModel, VGGModel, DenseNetModel],
-                 kfold_idxs: KFoldIndices,
-                 transformations: AlbTrxs):
-        self.model = model
+    def __init__(self, pytorch_algos: PytorchAlgos, kfold_idxs: KFoldIndices, transformations: AlbTrxs):
+        self.pytorch_algos = pytorch_algos
         self.kfold_idxs = kfold_idxs
         self.alb_trxs = transformations
         self.criterion = nn.CrossEntropyLoss()
 
-    # ### TODO use setattr or getattr? gotta be a way to make this code cleaner
-    # def create_dataloaders(self, n_outer_fold: int, n_inner_fold: int, batch_size: int, phase: str):
-    #     if phase == 'train':
-    #         df_train = DFTrainKFolded(n_outer_fold=n_outer_fold, n_inner_fold=n_inner_fold, kfold_idxs=self.kfold_idxs)
-    #         df_train_dataloader_obj = DFTrainDataloader(kfolded_data=df_train, transformations=self.alb_trxs, batch_size=batch_size)
-    #
-    #         df_train_dataloader, df_train_dataset = df_train_dataloader_obj.dataloader, df_train_dataloader_obj.dataset
-    #         return df_train_dataloader, df_train_dataset
-    #
-    #     elif phase == 'valid':
-    #         df_valid = DFValidKFolded(n_outer_fold=n_outer_fold, n_inner_fold=n_inner_fold, kfold_idxs=self.kfold_idxs)
-    #         df_valid_dataloader_obj = DFValidDataloader(kfolded_data=df_valid, transformations=self.alb_trxs, batch_size=batch_size)
-    #
-    #         df_valid_dataloader, df_valid_dataset = df_valid_dataloader_obj.dataloader, df_valid_dataloader_obj.dataset
-    #         return df_valid_dataloader, df_valid_dataset
-    #
-    #     elif phase == 'test':
-    #         df_test = DFTestKFolded(n_outer_fold=n_outer_fold, n_inner_fold=n_inner_fold, kfold_idxs=self.kfold_idxs)
-    #         df_test_dataloader_obj = DFTestDataloader(kfolded_data=df_test, transformations=self.alb_trxs, batch_size=batch_size)
-    #
-    #         df_test_dataloader, df_test_dataset = df_test_dataloader_obj.dataloader, df_test_dataloader_obj.dataset
-    #         return df_test_dataloader, df_test_dataset
+    def set_dataloaders(self, n_outer_fold: int, n_inner_fold: int, batch_size: int, phases: Union[List[str], str]):
+        if type(phases) is not list:
+            phases = [phases]
+
+        for phase in phases:
+            if phase == 'train':
+                df_train = DFTrainKFolded(n_outer_fold=n_outer_fold, n_inner_fold=n_inner_fold, kfold_idxs=self.kfold_idxs)
+                df_train_dataloader_obj = DFTrainDataloader(kfolded_data=df_train, transformations=self.alb_trxs, batch_size=batch_size)
+                self.train_dataloader, self.train_dataset = df_train_dataloader_obj.dataloader, df_train_dataloader_obj.dataset
+
+            elif phase == 'valid':
+                df_valid = DFValidKFolded(n_outer_fold=n_outer_fold, n_inner_fold=n_inner_fold, kfold_idxs=self.kfold_idxs)
+                df_valid_dataloader_obj = DFValidDataloader(kfolded_data=df_valid, transformations=self.alb_trxs, batch_size=batch_size)
+                self.valid_dataloader, self.valid_dataset = df_valid_dataloader_obj.dataloader, df_valid_dataloader_obj.dataset
+
+            elif phase == 'test':
+                df_test = DFTestKFolded(n_outer_fold=n_outer_fold, n_inner_fold=n_inner_fold, kfold_idxs=self.kfold_idxs)
+                df_test_dataloader_obj = DFTestDataloader(kfolded_data=df_test, transformations=self.alb_trxs, batch_size=batch_size)
+                self.test_dataloader, self.test_dataset = df_test_dataloader_obj.dataloader, df_test_dataloader_obj.dataset
 
     @staticmethod
     def create_hyperparam_grid(trial):
@@ -66,16 +64,17 @@ class ModelTrainer:
             'step_size': trial.suggest_int('step_size', 5, 15)
         }
 
-    def model_train(self, trial):
+    def model_train(self, n_inner_fold: int, trial):
+        self.model = self.pytorch_algos.algo_dict[n_inner_fold]
         self.hyperparams = self.create_hyperparam_grid(trial=trial)
         self.alb_trxs.p = self.hyperparams['alb_trxs_p']
         self.alb_trxs.n_passes = self.hyperparams['alb_trxs_n_passes']
         self.optimizer = getattr(optim, self.hyperparams['optimizer'])(self.model.parameters(), lr=self.hyperparams['lr'])
         self.scheduler = self.hyperparams['scheduler']
 
+        accuracy: float = 0.0
 
         ###TODO define accuracy for function return
-        ###TODO move the data portion out of the training loop for objective maximization
         for epoch in range(self.hyperparams['epochs']):
             start_time = time.time()
             train_loss = 0.0
@@ -115,9 +114,10 @@ class ModelTrainer:
                 raise optuna.exceptions.TrialPruned()
 
             end_time = time.time() - start_time
+
         return accuracy
 
-    def optuna_optimizer(self, show_param_importance: bool = True):
+    def optuna_study(self, show_param_importance: bool = True):
         study = optuna.create_study(direction='maximize')
         study.optimize(self.model_train, n_trials=20)
 
@@ -141,26 +141,18 @@ class ModelTrainer:
             fig = optuna.visualization.plot_param_importances(study)
             fig.show()
 
+    ###TODO fix enums
     def tune_model(self):
+        for algo_enum, algo in self.pytorch_algos.algo_dict.items():
+            for n_inner_fold in range(self.kfold_idxs.n_inner_splits):
+                self.set_dataloaders(n_outer_fold=algo_enum, n_inner_fold=n_inner_fold, batch_size=self.hyperparams['batch_size'], phases=['train', 'valid'])
+                self.optuna_study()
 
-        for inner_fold in range(self.kfold_idxs.n_inner_splits):
-            df_train = DFTrainKFolded(n_outer_fold=n_outer_fold, n_inner_fold=inner_fold, kfold_idxs=self.kfold_idxs)
-            self.train_dataloader = DFTrainDataloader(kfolded_data=df_train, transformations=self.alb_trxs, batch_size=self.hyperparams['batch_size']).dataloader
-            self.train_dataset = DFTrainDataloader(kfolded_data=df_train, transformations=self.alb_trxs, batch_size=self.hyperparams['batch_size']).dataset
-            df_valid = DFValidKFolded(n_outer_fold=n_outer_fold, n_inner_fold=inner_fold, kfold_idxs=self.kfold_idxs)
-            self.valid_dataloader = DFValidDataloader(kfolded_data=df_valid, transformations=self.alb_trxs, batch_size=self.hyperparams['batch_size']).dataloader
-            self.valid_dataset = DFValidDataloader(kfolded_data=df_valid, transformations=self.alb_trxs, batch_size=self.hyperparams['batch_size']).dataset
-
-
+    ### TODO lots of work on this
     def algo_eval(self):
         for outer_fold in range(self.kfold_idxs.n_outer_splits):
             for inner_fold in range(self.kfold_idxs.n_inner_splits):
-                """generate the augmented train data and valid data"""
-                train_dataloader, train_dataset = \
-                    self.create_dataloaders(n_outer_fold=outer_fold, n_inner_fold=inner_fold, batch_size=self.hyperparams['batch_size'], phase='train')
-                valid_dataloader, valid_dataset = \
-                    self.create_dataloaders(n_outer_fold=outer_fold, n_inner_fold=inner_fold, batch_size=self.hyperparams['batch_size'], phase='valid')
-
+                pass
 
     #
     # def validation_set_eval(self, phase='valid'):

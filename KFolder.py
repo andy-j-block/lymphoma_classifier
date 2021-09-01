@@ -5,44 +5,42 @@ from typing import Tuple, Union, Dict, List, Any
 from torch.utils.data import Dataset, DataLoader
 import torch
 import albumentations as A
+from albumentations.pytorch.transforms import ToTensorV2
 import random
 import pandas as pd
 import cv2
-# from copy import deepcopy
 
 
 class PytorchImagesDataset(Dataset):
     def __init__(self, df: pd.DataFrame):
         self.df = df
-        self.img_array, self.cancer_type = self.df['img_array'], self.df['cancer_type']
+        self.cancer_type, self.img_array = self.df['cancer_type'], self.df['img_array']
 
     def __len__(self):
         return len(self.df)
 
     def __getitem__(self, idx):
-        return self.img_array.iloc[idx], torch.tensor(int(self.cancer_type.iloc[idx]))
+        return self.cancer_type.iloc[idx], self.img_array.iloc[idx]
 
 
 class AlbTrxs:
-    p: float
-    resize_factor: int
+    resize_factor: int = 347  # each image is 1388x1040 pixels, so this value represents a 4x downsize
     tl_means: Tuple[float, float, float] = (0.485, 0.456, 0.406)
     tl_stds: Tuple[float, float, float] = (0.229, 0.224, 0.225)
     n_passes: int
+    p: float
 
-    def __init__(self, resize_factor: int, n_passes: int, p=0.2):
-        self.p = p
-        self.resize_factor = resize_factor ###TODO img_widths_int / 4
-        self.n_passes = n_passes
-        self.training_transformations = A.Compose([A.HorizontalFlip(p=self.p),
-                                                   A.VerticalFlip(p=self.p),
-                                                   A.ColorJitter(p=self.p),
-                                                   A.Rotate(limit=10, interpolation=cv2.BORDER_CONSTANT, p=self.p),
-                                                   A.RGBShift(p=self.p)
-                                                   ])
-        self.normalize_and_resize = A.Compose([A.Normalize(mean=self.tl_means, std=self.tl_stds),
-                                               A.LongestMaxSize(self.resize_factor)
-                                               ])
+    def __init__(self):
+        self.train_trxs = A.Compose([A.HorizontalFlip(p=self.p),
+                                     A.VerticalFlip(p=self.p),
+                                     A.ColorJitter(p=self.p),
+                                     A.Rotate(limit=10, interpolation=cv2.BORDER_CONSTANT, p=self.p),
+                                     A.RGBShift(p=self.p)
+                                     ])
+        self.normalize_resize_tensorize = A.Compose([A.Normalize(mean=self.tl_means, std=self.tl_stds),
+                                                     A.LongestMaxSize(self.resize_factor),
+                                                     ToTensorV2()
+                                                     ])
 
 
 class KFoldIndices(KFold):
@@ -166,7 +164,7 @@ class DataloaderBaseClass(ABC):
         original_data = self.nkf_df.copy(deep=True)
         for i in range(len(original_data)):
             original_data.at[i, 'img_array'] = \
-                self.transformations.normalize_and_resize(image=original_data['img_array'].values[i])['image']
+                self.transformations.normalize_resize_tensorize(image=original_data['img_array'].values[i])['image']
         self.transformed_data = original_data
 
     def create_dataloader(self):
@@ -193,8 +191,8 @@ class DFTrainDataloader(DataloaderBaseClass):
         aug_pass_counter = 0
         while aug_pass_counter < self.transformations.n_passes:
             for i in range(len(original_data)):
-                transformed_array = self.transformations.training_transformations(image=original_data['img_array'].values[i])['image']
-                transformed_array = self.transformations.normalize_and_resize(image=transformed_array)['image']
+                transformed_array = self.transformations.train_trxs(image=original_data['img_array'].values[i])['image']
+                transformed_array = self.transformations.normalize_resize_tensorize(image=transformed_array)['image']
 
                 labeled_array = {label: original_data[label].iloc[i],  # get original subtype label
                                  image: transformed_array
@@ -237,7 +235,7 @@ class OverfitDataloader(DataloaderBaseClass):
     def normalize_resize_data(self):
         rand_idx = random.randint(0, len(self.nkf_df))
         rand_entry = self.nkf_df.iloc[[rand_idx]].copy(deep=True)
-        rand_entry.at[rand_idx, 'img_array'] = self.transformations.normalize_and_resize(image=rand_entry.at[rand_idx, 'img_array'])['image']
+        rand_entry.at[rand_idx, 'img_array'] = self.transformations.normalize_resize_tensorize(image=rand_entry.at[rand_idx, 'img_array'])['image']
         self.transformed_data = rand_entry
 
         # data = {cols[0]: [rand_entry[cols[0]]],
