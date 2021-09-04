@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union, Dict
+from typing import Union, Dict, List, Tuple, Any
 import torch
 import torchvision.models as models
 from torchvision.models import ResNet, VGG, DenseNet
@@ -27,7 +27,7 @@ class ModelAbstract(ABC):
         self.model.to(self.torch_device)
 
 
-class ResNetModel(ModelAbstract, ResNet):
+class CustomResNet(ModelAbstract, ResNet):
     def __init__(self, model: ResNet):
         super(ResNet, self).__init__()
         self.model = model
@@ -39,7 +39,7 @@ class ResNetModel(ModelAbstract, ResNet):
         self.model.fc = nn.Linear(self.model.fc.in_features, self.n_cancer_types)
 
 
-class VGGModel(ModelAbstract, VGG):
+class CustomVGG(ModelAbstract, VGG):
     def __init__(self, model: VGG):
         super(VGG, self).__init__()
         self.model = model
@@ -50,7 +50,7 @@ class VGGModel(ModelAbstract, VGG):
         self.model.classifier[6] = nn.Linear(4096, self.n_cancer_types)
 
 
-class DenseNetModel(ModelAbstract, DenseNet):
+class CustomDenseNet(ModelAbstract, DenseNet):
     def __init__(self, model: DenseNet):
         super(DenseNet, self).__init__()
         self.model = model
@@ -63,9 +63,9 @@ class DenseNetModel(ModelAbstract, DenseNet):
 
 class PytorchAlgos:
 
-    resnet18: ResNet = ResNetModel(models.resnet18(pretrained=True))
-    resnet34: ResNet = ResNetModel(models.resnet34(pretrained=True))
-    resnet101: ResNet = ResNetModel(models.resnet101(pretrained=True))
+    RESNET18: ResNet = CustomResNet(models.resnet18(pretrained=True))
+    RESNET34: ResNet = CustomResNet(models.resnet34(pretrained=True))
+    RESNET101: ResNet = CustomResNet(models.resnet101(pretrained=True))
 
     ### TODO uncomment these later
     # vgg13: VGG = VGGModel(models.vgg13(pretrained=True))
@@ -77,12 +77,11 @@ class PytorchAlgos:
     # densenet169: DenseNet = DenseNetModel(models.densenet169(pretrained=True))
     # densenet201: DenseNet = DenseNetModel(models.densenet201(pretrained=True))
 
+    best_models: Dict[str, List[Tuple[int, Any, Any, Dict[str, float]]]]  # {RESNET18: [(0, 0.95, params), (1, 0.92, params), etc]
+
     ### TODO determine if enumerating makes sense
     def __init__(self):
-        algo_names = [algo for algo in dir(self) if '__' not in algo]
-        self.n_algos: int = len(algo_names)
-        self.algo_dict: Dict[int, Union[ResNet, VGG, DenseNet]] = {}
-        for idx, algo in enumerate(algo_names):
-            self.algo_dict[idx] = getattr(self, f'{algo}')
+        self.algos = [algo for algo in dir(self) if '__' not in algo]
+        self.n_algos: int = len(self.algos)
         # for idx, algo_name in enumerate(algo_names):
         #     setattr(self, f'{algo_name.upper()}', idx)

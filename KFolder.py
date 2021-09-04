@@ -147,6 +147,7 @@ class DataloaderBaseClass(ABC):
     """this abstract base class is used to create pytorch dataloaders based on the dataframes passed
        to it by any of the DFTrainKFolded, DFValidKFolded, or DFTestKFolded class objects"""
     dataset: PytorchImagesDataset
+    dataset_len: int
     dataloader: DataLoader
 
     @abstractmethod

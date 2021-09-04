@@ -3,12 +3,12 @@ from KFolder import *
 from PytorchAlgos import *
 import torchvision.models as models
 
-
+### TODO ton of work on this once training loop creation done
 images = ImageLoader('./Images')
 kfolder_overfit = KFoldIndices(image_data=images,
                                n_outer_splits=2,
                                n_inner_splits=2)
-albumentation_transformations = AlbTrxs(resize_factor=4, n_passes=0)
+albumentation_transformations = AlbTrxs()
 
 df_train_overfit = DFTrainKFolded(n_outer_fold=0,
                                   n_inner_fold=0,
@@ -22,4 +22,4 @@ df_valid_overfit_dataloader = OverfitDataloader(kfolded_data=df_valid_overfit,
                                                 transformations=albumentation_transformations)
 
 
-resnet18 = ResNetModel(models.resnet18(pretrained=True))
+resnet18 = CustomResNet(models.resnet18(pretrained=True))

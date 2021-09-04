@@ -23,9 +23,10 @@ with open('image_loader.obj', 'rb') as f:
 
 
 #overfit_image_data ###TODO create miniature dataset
-pytorch_models = PytorchAlgos()
-kfolder = KFoldIndices(image_data=images, n_outer_splits=pytorch_models.n_models, n_inner_splits=4)
+pytorch_algos = PytorchAlgos()
+kfolder = KFoldIndices(image_data=images, n_outer_splits=pytorch_algos.n_algos, n_inner_splits=4)
 albumentation_transformations = AlbTrxs()
+
 
 
 
