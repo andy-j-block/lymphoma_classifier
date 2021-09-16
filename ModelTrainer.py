@@ -7,6 +7,7 @@ import time
 import torch.optim as optim
 from torch.optim import Adam, Adagrad
 from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
+import numpy as np
 
 
 class ModelTrainer:
@@ -17,6 +18,7 @@ class ModelTrainer:
     valid_dataset_len: int
     test_dataloader: DataLoader
     test_dataset: Dataset
+    test_dataset_len: int
 
     algo_name: str
     algo: Union[ResNet, VGG, DenseNet]
@@ -27,14 +29,18 @@ class ModelTrainer:
     optimizer: Union[Adam, Adagrad]
     scheduler: Union[StepLR, ReduceLROnPlateau]
 
-    best_trials: Dict[str, list]
-
     ###TODO integrate data into here correctly
     def __init__(self, pytorch_algos: PytorchAlgos, kfold_idxs: KFoldIndices, transformations: AlbTrxs):
         self.pytorch_algos = pytorch_algos
         self.kfold_idxs = kfold_idxs
         self.alb_trxs = transformations
         self.criterion = nn.CrossEntropyLoss()
+
+        """create multiindex, create results dataframe"""
+        algos = self.pytorch_algos.algos
+        n_inner_folds = range(self.kfold_idxs.n_inner_splits)
+        index = pd.MultiIndex.from_product([algos, n_inner_folds], names=['algo', 'model_num'])
+        self.results = pd.DataFrame(index=index, columns=['val_acc', 'test_acc', 'hyperparams', 'param_importance'])
 
     def set_dataloaders(self, n_outer_fold: int, n_inner_fold: int, batch_size: int, phases: Union[List[str], str]):
         if type(phases) is not list:
@@ -56,6 +62,7 @@ class ModelTrainer:
                 df_test = DFTestKFolded(n_outer_fold=n_outer_fold, n_inner_fold=n_inner_fold, kfold_idxs=self.kfold_idxs)
                 df_test_dataloader_obj = DFTestDataloader(kfolded_data=df_test, transformations=self.alb_trxs, batch_size=batch_size)
                 self.test_dataloader, self.test_dataset = df_test_dataloader_obj.dataloader, df_test_dataloader_obj.dataset
+                self.test_dataset_len = len(df_test_dataloader_obj.dataset)
 
     @staticmethod
     def create_hyperparam_grid(trial):
@@ -136,7 +143,9 @@ class ModelTrainer:
 
         best_trial = study.best_trial
         param_importance = optuna.importance.get_param_importances(study)
-        self.pytorch_algos.best_models[algo_name].append((n_inner_fold, best_trial.values, best_trial.params.items(), param_importance))
+
+        """store results, save learnable parameters, test accuracy (nan) to be filled in later"""
+        self.results.loc[algo_name, :] = (best_trial.values, np.nan, best_trial.params.items(), param_importance)
         torch.save(self.model.state_dict(), f'./Model_State_Dicts/{algo_name}/state_dict_{n_inner_fold}')
 
         print('Best trial:')
@@ -157,12 +166,20 @@ class ModelTrainer:
                 self.model = getattr(self.pytorch_algos, f'{algo_name}')
                 self.optuna_study(algo_name=algo_name, n_inner_fold=n_inner_fold, show_param_importance=False)
 
+    def get_best_models(self):
+        """sort the results dataframe by validation accuracy, create tuples of the multiindex indices to drop, drop them"""
+        self.results = self.results.sort_values(by='val_acc', ascending=False)
+        drop_rows_list = [self.results.loc[algo].index[1:] for algo in self.pytorch_algos.algos]
+        drop_rows_tuples = [[(self.pytorch_algos.algos[i], drop_rows_list[i][j]) for j, _ in enumerate(drop_rows_list[i])] for i, _ in enumerate(drop_rows_list)]
+        drop_rows_tuples = [tuples for sublist in drop_rows_tuples for tuples in sublist]
+        self.results = self.results.drop(drop_rows_tuples)
+
     ### TODO lots of work on this
     def algo_eval(self):
         for algo_num, algo_name in enumerate(self.pytorch_algos.algos):
-            best_model =
+            # best_model =
 
-            valid_correct = 0
+            test_correct = 0
             self.model.eval()
             for inputs, labels in self.test_dataloader:
                 inputs = inputs.permute([0, 3, 2, 1])
@@ -171,5 +188,5 @@ class ModelTrainer:
                 with torch.set_grad_enabled(False):
                     outputs = self.model(inputs)
                     _, preds = torch.max(outputs, 1)
-                valid_correct += torch.sum(preds == labels.data)
-            accuracy = valid_correct / self.valid_dataset_len
+                test_correct += torch.sum(preds == labels.data)
+            accuracy = test_correct / self.test_dataset_len

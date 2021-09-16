@@ -77,7 +77,7 @@ class PytorchAlgos:
     # densenet169: DenseNet = DenseNetModel(models.densenet169(pretrained=True))
     # densenet201: DenseNet = DenseNetModel(models.densenet201(pretrained=True))
 
-    best_models: Dict[str, List[Tuple[int, Any, Any, Dict[str, float]]]]  # {RESNET18: [(0, 0.95, params), (1, 0.92, params), etc]
+    best_models: Dict[str, Union[Tuple[int, Any, Any, Dict[str, float]], List[Tuple[int, Any, Any, Dict[str, float]]]]]  # {RESNET18: [(0, 0.95, params), (1, 0.92, params), etc]
 
     ### TODO determine if enumerating makes sense
     def __init__(self):
