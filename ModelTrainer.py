@@ -145,7 +145,7 @@ class ModelTrainer:
 
         """store results, save learnable parameters, test accuracy (nan) to be filled in later"""
         self.results.loc[algo_name, :] = (best_trial.values, np.nan, best_trial.params.items(), param_importance)
-        torch.save(self.model.state_dict(), f'./Model_State_Dicts/{algo_name}/state_dict_{n_inner_fold}')
+        torch.save(self.model.state_dict(), f'./Model_State_Dicts/{algo_name}/state_dict_{n_inner_fold}.pth')
 
         print('Best trial:')
         print(f'  Accuracy: {best_trial.values}%')
@@ -165,19 +165,25 @@ class ModelTrainer:
                 self.model = getattr(self.pytorch_algos, f'{algo_name}')
                 self.optuna_study(algo_name=algo_name, n_inner_fold=n_inner_fold, show_param_importance=False)
 
-    def get_best_models(self):
+    def model_selection(self):
         """sort the results dataframe by validation accuracy, create tuples of the multiindex indices to drop, drop them"""
         self.results = self.results.sort_values(by='val_acc', ascending=False)
         drop_rows_list = [self.results.loc[algo].index[1:] for algo in self.pytorch_algos.algos]
         drop_rows_tuples = [[(self.pytorch_algos.algos[i], drop_rows_list[i][j]) for j, _ in enumerate(drop_rows_list[i])] for i, _ in enumerate(drop_rows_list)]
         drop_rows_tuples = [tuples for sublist in drop_rows_tuples for tuples in sublist]
         self.results = self.results.drop(drop_rows_tuples)
+        self.results = self.results.reset_index(level=1)
 
     ### TODO lots of work on this
-    def algo_eval(self):
+    def model_scoring(self):
         for algo_num, algo_name in enumerate(self.pytorch_algos.algos):
-            learnable_params =
-            self.model =
+            self.model = getattr(self.pytorch_algos, algo_name)
+            self.model.load_state_dict(torch.load(f'./Model_State_Dicts/{algo_name}/state_dict_{self.results["model_num"].loc[algo_name]}.pth'))
+            hyperparams = self.results['hyperparams'].loc[algo_name]
+            for hyperparam, value in hyperparams.items():
+                setattr(self, hyperparam, value)
+
+            accuracy: float = 0.0
 
             test_correct = 0
             self.model.eval()
@@ -190,3 +196,6 @@ class ModelTrainer:
                     _, preds = torch.max(outputs, 1)
                 test_correct += torch.sum(preds == labels.data)
             accuracy = test_correct / self.test_dataset_len
+
+            return accuracy
+

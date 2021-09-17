@@ -9,17 +9,15 @@ import pickle
 class ImageLoader:
     def __init__(self, top_img_dir: str):
         self.top_img_dir = top_img_dir
-        self.cancer_types = self.get_cancer_types()
-        self.img_dirs = self.get_img_dirs()
+        self.cancer_types = [cancer_type for cancer_type in os.listdir(self.top_img_dir)]
+        self.img_dirs = [os.path.join(self.top_img_dir, cancer_type) for cancer_type in self.cancer_types]
+
         self.imgs_and_labels = self.load_images()
         self.df = self.create_dataframe()
 
-    def get_cancer_types(self):
-        return [cancer_type for cancer_type in os.listdir(self.top_img_dir)]
-
     def get_img_dirs(self):
         """get directories where images are stored"""
-        return [os.path.join(self.top_img_dir, cancer_type) for cancer_type in self.cancer_types]
+        return
 
     def load_images(self):
         """read images into a list"""
@@ -52,14 +50,16 @@ class ImageLoader:
     def create_dataframe(self):
         return pd.DataFrame(self.imgs_and_labels, columns=['cancer_type', 'img_array'])
 
-#
-#
-# images = ImageLoader()
-# images.get_cancer_types('./Images')
-# images.get_img_dirs()
-# images.load_images()
-# # images.data_preview()
-# images.create_dataframe()
-#
-# with open('image_loader.obj', 'wb') as f:
-#     pickle.dump(images, f)
+
+def main(top_img_dir: str = './Images', pickle_=True):
+
+    image_loader = ImageLoader(top_img_dir=top_img_dir)
+
+    if pickle_:
+        with open('image_loader.obj', 'wb') as f:
+            pickle.dump(image_loader, f)
+            print('ImageLoader object saved successfully')
+
+
+if __name__ == '__main__':
+    main()
