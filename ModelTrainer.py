@@ -23,7 +23,6 @@ class ModelTrainer:
     algo_name: str
     algo: Union[ResNet, VGG, DenseNet]
     model: Union[ResNet, VGG, DenseNet]
-    n_inner_fold: int
 
     hyperparams: Dict[str, Any]
     optimizer: Union[Adam, Adagrad]
@@ -177,7 +176,8 @@ class ModelTrainer:
     ### TODO lots of work on this
     def algo_eval(self):
         for algo_num, algo_name in enumerate(self.pytorch_algos.algos):
-            # best_model =
+            learnable_params =
+            self.model =
 
             test_correct = 0
             self.model.eval()
