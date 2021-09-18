@@ -18,8 +18,8 @@ class ImageLoader:
         self.df = pd.DataFrame(self.imgs_and_labels, columns=['cancer_type', 'img_array'])
 
         """add label encoding because pytorch doesnt handle strings"""
-        label_encoding = {cancer_type: enum for (enum, cancer_type) in enumerate(self.cancer_types)}
-        self.df['cancer_type'] = self.df['cancer_type'].map(label_encoding)
+        label_encoder = {cancer_type: enum for (enum, cancer_type) in enumerate(self.cancer_types)}
+        self.df['cancer_type'] = self.df['cancer_type'].map(label_encoder)
         self.overfit_df = self.df.iloc[random.sample(range(0, len(self.df)), 4)]
 
 

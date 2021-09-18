@@ -15,6 +15,7 @@ class PytorchImagesDataset(Dataset):
     def __init__(self, df: pd.DataFrame):
         self.df = df
         self.cancer_type, self.img_array = self.df['cancer_type'], self.df['img_array']
+        self.length = self.__len__()
 
     def __len__(self):
         return len(self.df)
@@ -154,7 +155,7 @@ class DataloaderBaseClass(ABC):
 
     @abstractmethod
     def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
-                 transformations: AlbTrxs, batch_size: int, num_workers: int = 2):
+                 transformations: AlbTrxs, batch_size: int, num_workers: int = 0):
         self.nkf_df = kfolded_data.nkf_df  ###TODO determine if this line in necessary
         self.outer_fold, self.inner_fold = kfolded_data.n_outer_fold, kfolded_data.n_inner_fold  ##TODO is this useful as a reference
         self.transformations = transformations
