@@ -20,7 +20,9 @@ class PytorchImagesDataset(Dataset):
         return len(self.df)
 
     def __getitem__(self, idx):
-        return self.cancer_type.iloc[idx], self.img_array.iloc[idx]
+        img = self.img_array.iloc[idx]
+        label = torch.tensor(int(self.cancer_type.iloc[idx]))
+        return img, label
 
 
 class AlbTrxs:
@@ -28,7 +30,7 @@ class AlbTrxs:
     tl_means: Tuple[float, float, float] = (0.485, 0.456, 0.406)
     tl_stds: Tuple[float, float, float] = (0.229, 0.224, 0.225)
     n_passes: int
-    p: float
+    p: float = 0.0  # need to initialize
 
     def __init__(self):
         self.train_trxs = A.Compose([A.HorizontalFlip(p=self.p),
@@ -53,7 +55,7 @@ class KFoldIndices(KFold):
 
     def __init__(self, image_data: ImageLoader, n_outer_splits: int, n_inner_splits: int, shuffle: bool = True, random_state: int = 42):
         super().__init__(shuffle=shuffle, random_state=random_state)
-        self.image_df = image_data.df
+        self.image_df = image_data
         self.n_outer_splits, self.n_inner_splits = n_outer_splits, n_inner_splits
         self.shuffle, self.random_state = shuffle, random_state
         self.nested_outer()

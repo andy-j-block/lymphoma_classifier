@@ -5,9 +5,11 @@ from KFolder import *
 from typing import Union, Dict, Any
 import time
 import torch.optim as optim
-from torch.optim import Adam, Adagrad
+# from torch.optim import Adam, Adagrad
 from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 import numpy as np
+
+TORCH_DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class ModelTrainer:
@@ -24,9 +26,13 @@ class ModelTrainer:
     algo: Union[ResNet, VGG, DenseNet]
     model: Union[ResNet, VGG, DenseNet]
 
+    n_outer_fold: int
+    n_inner_fold: int
+
     hyperparams: Dict[str, Any]
-    optimizer: Union[Adam, Adagrad]
+    optimizer: Any #Union[Adam, Adagrad]
     scheduler: Union[StepLR, ReduceLROnPlateau]
+    batch_size: int
 
     ###TODO integrate data into here correctly
     def __init__(self, pytorch_algos: PytorchAlgos, kfold_idxs: KFoldIndices, transformations: AlbTrxs):
@@ -68,7 +74,7 @@ class ModelTrainer:
         return {
             'epochs': trial.suggest_int('epochs', 1, 100),
             'batch_size': trial.suggest_int('batch_size', 1, 16),
-            'optimizer': trial.suggest_categorical('optimizer', [Adam, Adagrad]),
+            'optimizer': trial.suggest_categorical('optimizer', ['Adam', 'Adagrad']),
             'lr': trial.suggest_float('lr', 1e-5, 1e-1, log=True),
             'scheduler': trial.suggest_categorical('scheduler', [StepLR, ReduceLROnPlateau]),
             'alb_trxs_p': trial.suggest_float('alb_trxs_p', 0.1, 0.8),
@@ -76,25 +82,39 @@ class ModelTrainer:
             'step_size': trial.suggest_int('step_size', 5, 15)
         }
 
-    def model_train(self, trial):
-        self.hyperparams = self.create_hyperparam_grid(trial=trial)
-        self.alb_trxs.p = self.hyperparams['alb_trxs_p']
-        self.alb_trxs.n_passes = self.hyperparams['alb_trxs_n_passes']
-        self.optimizer = getattr(optim, self.hyperparams['optimizer'])(self.model.parameters(), lr=self.hyperparams['lr'])
-        self.scheduler = self.hyperparams['scheduler']
+    def model_train(self):#, trial):
+        # self.hyperparams = self.create_hyperparam_grid(trial=trial)
+        # self.alb_trxs.p = self.hyperparams['alb_trxs_p']
+        # self.alb_trxs.n_passes = self.hyperparams['alb_trxs_n_passes']
+        # self.optimizer = getattr(optim, str(self.hyperparams['optimizer']))(self.model.parameters(), lr=self.hyperparams['lr'])
+        # self.scheduler = self.hyperparams['scheduler'](optimizer=self.optimizer, step_size=self.hyperparameters['step_size'])
+        # self.batch_size = self.hyperparams['batch_size']
+
+        # self.hyperparams = self.create_hyperparam_grid(trial=trial)
+        self.model = self.pytorch_algos.RESNET18.model
+        self.alb_trxs.p = 0.2
+        self.alb_trxs.n_passes = 2
+        self.optimizer = optim.Adam(self.model.parameters(), lr=0.01)
+        self.scheduler = StepLR(optimizer=self.optimizer, step_size=10)
+        self.batch_size = 2
+        self.epochs = 5
+        self.n_outer_fold, self.n_inner_fold = 0, 0
+
+        self.set_dataloaders(n_outer_fold=self.n_outer_fold, n_inner_fold=self.n_inner_fold, batch_size=self.batch_size, phases=['train', 'valid'])
 
         accuracy: float = 0.0
 
         ###TODO define accuracy for function return
-        for epoch in range(self.hyperparams['epochs']):
+        for epoch in range(self.epochs):#self.hyperparams['epochs']):
             train_loss = 0.0
-            valid_correct = 0
+            valid_correct = 0.0
 
             """train model"""
             self.model.train()
+            print(self.train_dataloader)
+            print(self.train_dataset)
             for inputs, labels in self.train_dataloader:
-                inputs = inputs.permute([0, 3, 2, 1])
-                inputs, labels = inputs.to(self.model.torch_device), labels.to(self.model.torch_device)
+                inputs, labels = inputs.to(TORCH_DEVICE), labels.to(TORCH_DEVICE)
 
                 self.optimizer.zero_grad()
                 with torch.set_grad_enabled(True):
@@ -103,34 +123,35 @@ class ModelTrainer:
                     loss.backward()
                     self.optimizer.step()
                 train_loss += loss.item() * inputs.size(0)
+            print(f'{epoch}: {train_loss}')
 
             self.scheduler.step()
 
             """validation eval"""
             self.model.eval()
             for inputs, labels in self.valid_dataloader:
-                inputs = inputs.permute([0, 3, 2, 1])
-                inputs, labels = inputs.to(self.model.torch_device), labels.to(self.model.torch_device)
+                inputs, labels = inputs.to(TORCH_DEVICE), labels.to(TORCH_DEVICE)
 
                 with torch.set_grad_enabled(False):
                     outputs = self.model(inputs)
                     _, preds = torch.max(outputs, 1)
                 valid_correct += torch.sum(preds == labels.data)
             accuracy = valid_correct / self.valid_dataset_len
-
-            trial.report(accuracy, epoch)
-            if trial.should_prune():
-                raise optuna.exceptions.TrialPruned()
+            print(accuracy)
+            # trial.report(accuracy, epoch)
+            # if trial.should_prune():
+            #     raise optuna.exceptions.TrialPruned()
 
         return accuracy
 
-    def optuna_study(self, algo_name: str, n_inner_fold: int, show_param_importance: bool = True):
+    def optuna_study(self, algo_name: str, n_outer_fold: int, n_inner_fold: int, show_param_importance: bool = True):
         """create a study on each of the inner fold complements to maximize the accuracy for given params/hyperparams.
            for each inner fold, store the best hyperparameters and save the model state dict learnable parameters"""
+        self.n_outer_fold, self.n_inner_fold = n_outer_fold, n_inner_fold
 
         start_time = time.time()
         study = optuna.create_study(direction='maximize')
-        study.optimize(self.model_train, n_trials=20)
+        study.optimize(self.model_train, n_trials=20, timeout=150)
         elapsed_time = time.time() - start_time
         pruned_trials = study.get_trials(deepcopy=False, states=(TrialState.PRUNED,))
         completed_trials = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
@@ -161,9 +182,8 @@ class ModelTrainer:
     def tune_model(self):
         for algo_num, algo_name in enumerate(self.pytorch_algos.algos):  # RESNET18, RESNET 32, etc.
             for n_inner_fold in range(self.kfold_idxs.n_inner_splits):
-                self.set_dataloaders(n_outer_fold=algo_num, n_inner_fold=n_inner_fold, batch_size=self.hyperparams['batch_size'], phases=['train', 'valid'])
-                self.model = getattr(self.pytorch_algos, f'{algo_name}')
-                self.optuna_study(algo_name=algo_name, n_inner_fold=n_inner_fold, show_param_importance=False)
+                self.model = getattr(self.pytorch_algos, f'{algo_name}.model')
+                self.optuna_study(algo_name=algo_name, n_outer_fold=algo_num, n_inner_fold=n_inner_fold, show_param_importance=False)
 
     def model_selection(self):
         """sort the results dataframe by validation accuracy, create tuples of the multiindex indices to drop, drop them"""
@@ -179,9 +199,6 @@ class ModelTrainer:
         for algo_num, algo_name in enumerate(self.pytorch_algos.algos):
             self.model = getattr(self.pytorch_algos, algo_name)
             self.model.load_state_dict(torch.load(f'./Model_State_Dicts/{algo_name}/state_dict_{self.results["model_num"].loc[algo_name]}.pth'))
-            hyperparams = self.results['hyperparams'].loc[algo_name]
-            for hyperparam, value in hyperparams.items():
-                setattr(self, hyperparam, value)
 
             accuracy: float = 0.0
 

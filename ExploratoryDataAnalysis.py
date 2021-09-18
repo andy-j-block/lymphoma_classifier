@@ -40,8 +40,7 @@ class JupyterLauncher:
 class ExploratoryDataAnalysis:
 
     def __init__(self, image_data: ImageLoader):
-        self.image_data = image_data
-        self.image_df = self.image_data.df
+        self.image_df = image_data.df
 
     def cancer_type_counts(self):
         """print the value counts for each of the cancer subtypes and display the values on a chart"""

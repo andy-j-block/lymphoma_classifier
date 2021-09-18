@@ -9,15 +9,19 @@ import pickle
 class ImageLoader:
     def __init__(self, top_img_dir: str):
         self.top_img_dir = top_img_dir
+        """get the cancer types from the subdirectory names and their full paths"""
         self.cancer_types = [cancer_type for cancer_type in os.listdir(self.top_img_dir)]
         self.img_dirs = [os.path.join(self.top_img_dir, cancer_type) for cancer_type in self.cancer_types]
 
+        """load the images with PIL/numpy and save them to a pandas dataframe"""
         self.imgs_and_labels = self.load_images()
-        self.df = self.create_dataframe()
+        self.df = pd.DataFrame(self.imgs_and_labels, columns=['cancer_type', 'img_array'])
 
-    def get_img_dirs(self):
-        """get directories where images are stored"""
-        return
+        """add label encoding because pytorch doesnt handle strings"""
+        label_encoding = {cancer_type: enum for (enum, cancer_type) in enumerate(self.cancer_types)}
+        self.df['cancer_type'] = self.df['cancer_type'].map(label_encoding)
+        self.overfit_df = self.df.iloc[random.sample(range(0, len(self.df)), 4)]
+
 
     def load_images(self):
         """read images into a list"""
@@ -47,9 +51,6 @@ class ImageLoader:
         print(self.df.head(3))
         print(f'Images dataframe shape: {self.df.shape}\n')
 
-    def create_dataframe(self):
-        return pd.DataFrame(self.imgs_and_labels, columns=['cancer_type', 'img_array'])
-
 
 def main(top_img_dir: str = './Images', pickle_=True):
 
@@ -57,8 +58,12 @@ def main(top_img_dir: str = './Images', pickle_=True):
 
     if pickle_:
         with open('image_loader.obj', 'wb') as f:
-            pickle.dump(image_loader, f)
+            pickle.dump(image_loader.df, f)
             print('ImageLoader object saved successfully')
+
+        with open('overfit_data.obj', 'wb') as f:
+            pickle.dump(image_loader.overfit_df, f)
+            print('Overfit test data object saved successfully')
 
 
 if __name__ == '__main__':
