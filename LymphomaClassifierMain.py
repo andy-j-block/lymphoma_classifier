@@ -14,13 +14,15 @@ def main():
 
     model_trainer = ModelTrainer(pytorch_algos=pytorch_algos, kfold_idxs=kfolder, transformations=alb_trxs)
     model_trainer.tune_model()
+    model_trainer.save_results('tuned_results.csv')
     model_trainer.model_selection()
-    print(model_trainer.results)
+    model_trainer.save_results('selected_results.csv')
+    model_trainer.model_scoring()
+    model_trainer.save_results('scored_results.csv')
 
 
 if __name__ == '__main__':
     main()
-
 
 
 

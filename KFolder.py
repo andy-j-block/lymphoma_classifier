@@ -1,5 +1,4 @@
 from sklearn.model_selection import KFold
-from ImageLoader import ImageLoader
 from abc import ABC, abstractmethod
 from typing import Tuple, Union, Dict, List, Any
 from torch.utils.data import Dataset, DataLoader
@@ -54,7 +53,7 @@ class KFoldIndices(KFold):
     train_idxs: Dict[Tuple[int, int], Any]
     valid_idxs: Dict[Tuple[int, int], Any]
 
-    def __init__(self, image_data: ImageLoader, n_outer_splits: int, n_inner_splits: int, shuffle: bool = True, random_state: int = 42):
+    def __init__(self, image_data: pd.DataFrame, n_outer_splits: int, n_inner_splits: int, shuffle: bool = True, random_state: int = 42):
         super().__init__(shuffle=shuffle, random_state=random_state)
         self.image_df = image_data
         self.n_outer_splits, self.n_inner_splits = n_outer_splits, n_inner_splits
@@ -138,10 +137,10 @@ class DFValidKFolded(KFoldedDatasets):
 class DFTestKFolded(KFoldedDatasets):
     phase: str = 'test'
 
-    def __init__(self, n_outer_fold: int, n_inner_fold: int, kfold_idxs: KFoldIndices):
+    def __init__(self, n_outer_fold: int, kfold_idxs: KFoldIndices, n_inner_fold=None):
         super().__init__(n_outer_fold, n_inner_fold, kfold_idxs)
 
-    def get_nkf_dataframe(self, n_outer_fold: int, n_inner_fold: int = None):
+    def get_nkf_dataframe(self, n_outer_fold: int, n_inner_fold):
         df = self.image_df.iloc[self.kfold_idxs.test_idxs[self.n_outer_fold]]
         return df.reset_index(drop=True)
 
@@ -157,7 +156,6 @@ class DataloaderBaseClass(ABC):
     def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
                  transformations: AlbTrxs, batch_size: int, num_workers: int = 0):
         self.nkf_df = kfolded_data.nkf_df  ###TODO determine if this line in necessary
-        self.outer_fold, self.inner_fold = kfolded_data.n_outer_fold, kfolded_data.n_inner_fold  ##TODO is this useful as a reference
         self.transformations = transformations
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -225,6 +223,7 @@ class DFTestDataloader(DataloaderBaseClass):
                  transformations: AlbTrxs, batch_size: int):
         super().__init__(kfolded_data, transformations, batch_size)
         self.normalize_resize_data()
+        self.batch_size = len(self.nkf_df)
         self.create_dataloader()
 
 

@@ -68,14 +68,14 @@ class PytorchAlgos:
     RESNET101: ResNet = CustomResNet(models.resnet101(pretrained=True))
 
     ### TODO uncomment these later
-    # vgg13: VGG = VGGModel(models.vgg13(pretrained=True))
-    # vgg16: VGG = VGGModel(models.vgg16(pretrained=True))
-    # vgg13_bn: VGG = VGGModel(models.vgg13_bn(pretrained=True))
-    # vgg16_bn: VGG = VGGModel(models.vgg16_bn(pretrained=True))
-    #
-    # densenet121: DenseNet = DenseNetModel(models.densenet121(pretrained=True))
-    # densenet169: DenseNet = DenseNetModel(models.densenet169(pretrained=True))
-    # densenet201: DenseNet = DenseNetModel(models.densenet201(pretrained=True))
+    VGG13: VGG = CustomVGG(models.vgg13(pretrained=True))
+    VGG16: VGG = CustomVGG(models.vgg16(pretrained=True))
+    VGG13_BN: VGG = CustomVGG(models.vgg13_bn(pretrained=True))
+    VGG16_BN: VGG = CustomVGG(models.vgg16_bn(pretrained=True))
+
+    DENSENET121: DenseNet = CustomDenseNet(models.densenet121(pretrained=True))
+    DENSENET169: DenseNet = CustomDenseNet(models.densenet169(pretrained=True))
+    DENSENET201: DenseNet = CustomDenseNet(models.densenet201(pretrained=True))
 
     def __init__(self):
         self.algos = [algo for algo in dir(self) if '__' not in algo]
