@@ -10,6 +10,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
 
 TORCH_DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f'Torch device: {TORCH_DEVICE}')
 
 
 class ModelTrainer:
@@ -23,8 +24,8 @@ class ModelTrainer:
     test_dataset_len: int
 
     algo_name: str
-    algo: Union[ResNet, VGG, DenseNet]
-    model: Union[ResNet, VGG, DenseNet]
+    algo: Union[ResNet, VGG, MobileNetV3]
+    model: Union[ResNet, VGG, MobileNetV3]
 
     n_outer_fold: int
     n_inner_fold: int
@@ -138,7 +139,7 @@ class ModelTrainer:
         start_time = time.time()
         study = optuna.create_study(direction='maximize', pruner=optuna.pruners.MedianPruner())
         print(f'Begin training {algo_name} model')
-        study.optimize(self.model_train, n_trials=10)
+        study.optimize(self.model_train, n_trials=8)
         elapsed_time = time.time() - start_time
         pruned_trials = study.get_trials(deepcopy=False, states=(TrialState.PRUNED,))
         completed_trials = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
