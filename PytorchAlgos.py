@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Union
 import torch
 import torchvision.models as models
-from torchvision.models import ResNet, VGG, MobileNetV3
+from torchvision.models import ResNet, VGG
 import torch.nn as nn
 
 
@@ -11,7 +11,7 @@ class ModelAbstract(ABC):
     torch_device: str = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     @abstractmethod
-    def __init__(self, model: Union[ResNet, VGG, MobileNetV3]):
+    def __init__(self, model: Union[ResNet, VGG]):
         self.model = model
 
     def requires_grad(self):
@@ -50,15 +50,15 @@ class CustomVGG(ModelAbstract, VGG):
         self.model.classifier[6] = nn.Linear(4096, self.n_cancer_types)
 
 
-class CustomMobileNet(ModelAbstract, MobileNetV3):
-    def __init__(self, model: MobileNetV3):
-        super(MobileNetV3, self).__init__()
-        self.model = model
-        self.send_to_device()
-
-    def replace_fc_layers(self):
-        self.requires_grad()
-        self.model.classifier[3] = nn.Linear(self.model.classifier[0].out_features, self.n_cancer_types, bias=True)
+# class CustomMobileNet(ModelAbstract, MobileNetV3):
+#     def __init__(self, model: MobileNetV3):
+#         super(MobileNetV3, self).__init__()
+#         self.model = model
+#         self.send_to_device()
+#
+#     def replace_fc_layers(self):
+#         self.requires_grad()
+#         self.model.classifier[3] = nn.Linear(self.model.classifier[0].out_features, self.n_cancer_types, bias=True)
 
 
 class PytorchAlgos:
@@ -72,7 +72,7 @@ class PytorchAlgos:
     VGG13_BN: VGG = CustomVGG(models.vgg13_bn(pretrained=True))
     VGG16_BN: VGG = CustomVGG(models.vgg16_bn(pretrained=True))
 
-    MOBILENETV3_SM: MobileNetV3 = CustomMobileNet(models.mobilenet_v3_small(pretrained=True))
+    # MOBILENETV3_SM: MobileNetV3 = CustomMobileNet(models.mobilenet_v3_small(pretrained=True))
 
     def __init__(self):
         self.algos = [algo for algo in dir(self) if '__' not in algo]

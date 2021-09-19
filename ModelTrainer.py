@@ -24,8 +24,8 @@ class ModelTrainer:
     test_dataset_len: int
 
     algo_name: str
-    algo: Union[ResNet, VGG, MobileNetV3]
-    model: Union[ResNet, VGG, MobileNetV3]
+    algo: Union[ResNet, VGG]
+    model: Union[ResNet, VGG]
 
     n_outer_fold: int
     n_inner_fold: int
@@ -72,7 +72,7 @@ class ModelTrainer:
     @staticmethod
     def create_hyperparam_grid(trial):
         return {
-            'epochs': trial.suggest_int('epochs', 1, 100),
+            'epochs': trial.suggest_int('epochs', 10, 25),
             'batch_size': trial.suggest_int('batch_size', 1, 32),
             'optimizer': trial.suggest_categorical('optimizer', ['Adam', 'Adagrad']),
             'lr': trial.suggest_float('lr', 1e-4, 1e-1, log=True),
