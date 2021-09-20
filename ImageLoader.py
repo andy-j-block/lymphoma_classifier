@@ -6,6 +6,14 @@ import pandas as pd
 import pickle
 
 
+def label_encoder():
+    return {cancer_type: enum for (enum, cancer_type) in enumerate(['CLL', 'FL', 'MCL'])}
+
+
+def label_decoder():
+    return {enum: cancer_type for (enum, cancer_type) in enumerate(['CLL', 'FL', 'MCL'])}
+
+
 class ImageLoader:
     def __init__(self, top_img_dir: str):
         self.top_img_dir = top_img_dir
@@ -18,8 +26,7 @@ class ImageLoader:
         self.df = pd.DataFrame(self.imgs_and_labels, columns=['cancer_type', 'img_array'])
 
         """add label encoding because pytorch doesnt handle strings"""
-        label_encoder = {cancer_type: enum for (enum, cancer_type) in enumerate(self.cancer_types)}
-        self.df['cancer_type'] = self.df['cancer_type'].map(label_encoder)
+        self.df['cancer_type'] = self.df['cancer_type'].map(label_encoder())
         self.overfit_df = self.df.iloc[random.sample(range(0, len(self.df)), 4)]
 
 
@@ -56,14 +63,14 @@ def main(top_img_dir: str = './Images', pickle_=True):
 
     image_loader = ImageLoader(top_img_dir=top_img_dir)
 
-    if pickle_:
-        with open('image_loader.obj', 'wb') as f:
-            pickle.dump(image_loader.df, f)
-            print('ImageLoader object saved successfully')
-
-        with open('overfit_data.obj', 'wb') as f:
-            pickle.dump(image_loader.overfit_df, f)
-            print('Overfit test data object saved successfully')
+    # if pickle_:
+    #     with open('image_loader.obj', 'wb') as f:
+    #         pickle.dump(image_loader.df, f)
+    #         print('ImageLoader object saved successfully')
+    #
+    #     with open('overfit_data.obj', 'wb') as f:
+    #         pickle.dump(image_loader.overfit_df, f)
+    #         print('Overfit test data object saved successfully')
 
 
 if __name__ == '__main__':

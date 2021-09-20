@@ -14,7 +14,6 @@ class PytorchImagesDataset(Dataset):
     def __init__(self, df: pd.DataFrame):
         self.df = df
         self.cancer_type, self.img_array = self.df['cancer_type'], self.df['img_array']
-        self.length = self.__len__()
 
     def __len__(self):
         return len(self.df)

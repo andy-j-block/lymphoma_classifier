@@ -101,7 +101,7 @@ results = st.beta_container()
 with header:
     st.title('Lymphoma Subtype Classifier')
     st.write("""
-    This dashboard uses a trained model to classify sample Non-Hodgkins Lymphoma biopsy images into three sub-types: \
+    This app uses a trained model to classify sample Non-Hodgkins Lymphoma biopsy images into three sub-types: \
     Chronic Lymphocytic Leukemia (CLL), Follicular Lymphoma (FL), or Mantle Cell Lymphoma (MCL).  Toggle the \
     "Transformations" buttons to alter the image as you like before clicking the "Run Model" button, which will run the \
     model on the sample image.  The predicted and actual type will appear alongside.  See below the cross-entropy loss \

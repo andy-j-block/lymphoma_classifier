@@ -1,6 +1,6 @@
 .ipynb_checkpoints/
 .idea/
 __pycache__/
-test*
+Notebooks/test.ipynb
 *.obj
 *results.csv
