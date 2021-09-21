@@ -3,13 +3,47 @@
 This repo is a work in progess.  It will be a multi-class classifier looking at three different types of Lymphoma and
 classifying their sub-type via its immunostained biopsy image.
 
-##Results
+## Results
 
-###Optuna
+I was able to achieve an acurracy, precision, and recall of about 75% on a pretrained ResNet101 algorithm with a custom 
+fully connected classification layer.  Here are the actual statistics for the entire classifier:
+
+|     Accuracy      |   Weighted Precision   |   Weighted Recall  |   Weighted F1 Score  |
+|       :---:       |         :---:          |        :---:       |       :----:         |
+|        77%        |          77%           |         76%        |         77%          |
+
+
+And then by individual class:
+
+|      |  Accuracy |   Precision   |   Recall  |  F1 Score  |
+| :--  |   :--:    |    :---:      |   :---:   |    :---:   |
+| CLL  |    82%    |      71%      |    84%    |     77%    |
+| FL   |    87%    |      85%      |    77%    |     81%    |
+| MCL  |    84%    |      76%      |    68%    |     71%    |
+
+
+For a more thorough look into the results of this project, please explore the notebook titled `ResultsAnalysis.ipynb` 
+in the "Notebooks" directory.
+
+### Best Performing Model
+
+Given the size of the dataset, I used nested k-fold cross validation to select and score the models I trained using a
+custom training loop.  The highest performing model utilized a pre-trained ResNet101 algorithm with a custom fully
+connected classification layer.  I tested this algorithm against numerous other algorithms, please see the 
+[Implementation](#Implementation) section for more details.
+
+### Hyperparameter Grid
+
+I used the Optuna package to run training loop trials over the hyperparameter grid I defined.
 
 
 ### Tools Used
-Pytorch
+Data Ingestion: Pandas, Numpy, Pillow, Pickle \
+Data Augmentation: Albumentations, OpenCV \
+Model Building and Training: PyTorch, Torchvision, Optuna \
+K-Folding: SciKit-Learn \
+Web App: Streamlit
+
 
 ## Installation
 
@@ -28,6 +62,9 @@ Lymphocytic Leukemia, Follicular Lymphoma, and Mantle Cell Lymphoma.
 | FL  |    139    |      37%      |
 | MCL |    122    |      33%      |
 
+Here are some sample images:
+
+![Sample Biopsy Images by Type](Documents/README_Docs/sample_images_by_type.png)
 
 The original image dataset can be found here:
 
@@ -50,6 +87,9 @@ In order to reduce the potential for overfitting, I needed to find a way to incr
 images.  Both PyTorch and 
 
 ### Nested K-Fold
+
+The number of outer loops was defined by the number of algorithms I was testing.  In order to maintain a reasonable test
+set size and increase my confidence in the performance statistics, I tested the algorithms in batches.
 
 ### Algorithms
 
