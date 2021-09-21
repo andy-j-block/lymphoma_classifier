@@ -44,20 +44,6 @@ class ImageLoader:
                 imgs_and_labels.append((self.cancer_types[i], img_array))
         return imgs_and_labels
 
-    ###TODO fix context manager to print a random data preview to file
-    def data_preview(self):
-        """print out some data entries"""
-        random_data_entry = random.randint(0, len(self.imgs_and_labels))
-
-        with open('data_preview', 'wb') as f:
-            f.write(f'Random entry cancer type: {self.imgs_and_labels[random_data_entry][0]}\n')
-            f.write(f'Random entry image array: {self.imgs_and_labels[random_data_entry][1][:3]}\ncontinued...\n')
-            f.write('Random entry image:')
-            Image.fromarray(self.imgs_and_labels[random_data_entry][1]).reduce(2)
-
-        print(self.df.head(3))
-        print(f'Images dataframe shape: {self.df.shape}\n')
-
 
 def main(top_img_dir: str = './Images', pickle_=True):
 

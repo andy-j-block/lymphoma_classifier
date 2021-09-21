@@ -75,7 +75,10 @@ Lymphocytic Leukemia, Follicular Lymphoma, and Mantle Cell Lymphoma.
 
 Here are some sample images:
 
-![Sample Biopsy Images by Type](Documents/README_Docs/sample_images_by_type.png)
+![Sample Biopsy Images by Type](Documents/README_Resources/sample_images_by_type.png)
+
+The dimensions of all the images in the dataset are equal, there are no nulls in any of the image arrays, and their color
+intensities range from 0 to 255 (0x00-0xFF in hex) as expected.
 
 The original image dataset can be found here: 
 
@@ -91,11 +94,22 @@ technology in biomedicine : a publication of the IEEE Engineering in Medicine an
 
 ## Implementation
 
+### Image Loading
+
+The image loading for this project is performed using Pandas, PIL, and optionally, Pickle.  The dataset is sourced from
+the `'./Images'` dictory, containing subdirectories for each of the Lymphoma types.
 
 ### Albumentations
 
 In order to reduce the potential for overfitting, I needed to find a way to increase the size of the training set of
-images.  Both PyTorch and 
+images.  Both Torchvision and OpenCV have extensive libraries for altering image data, but after doing the background
+research, I came away really impressed with the Albumentations library and decided to use it as my transformation
+pipeline.
+
+Albumentations uses a `Compose` class that is almost identical to the Torchvision `Compose` class, where you can define
+the possible transformations, the extent to which those transformations alter the image, and the probability that a given
+tranform in the pipeline is applied to the input image.  For some descriptive statistics on the pipeline, please see the
+`ExploratoryDataAnalysis` notebook.
 
 ### Nested K-Fold
 
@@ -110,7 +124,7 @@ norm, VGG16, and VGG16 with batch norm.  Since the dataset is so small, I utiliz
 ### Training Loop
 
 Because of the richness and size of the images, I did not have the luxury of creating dataloaders to send to the GPU to
-be stored in memory.
+be stored in memory.  Created a custom PyTorch Dataset class, created a Dataloader based off of this Dataset class.
 
 ### Streamlit Web App
 
