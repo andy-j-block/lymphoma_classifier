@@ -37,8 +37,8 @@ class ModelTrainer:
     scheduler: ReduceLROnPlateau
     batch_size: int
 
-    actual_labels: np.ndarray
-    prediction_labels: np.ndarray
+    y: np.ndarray
+    y_pred: np.ndarray
 
     ###TODO integrate data into here correctly
     def __init__(self, pytorch_algos: PytorchAlgos, kfold_idxs: KFoldIndices, transformations: AlbTrxs):
@@ -244,9 +244,9 @@ class ModelTrainer:
                 outputs = self.model(inputs)
                 _, preds = torch.max(outputs, 1)
 
-            self.actual_labels, self.prediction_labels = labels.cpu().numpy(), preds.cpu().numpy()
+            self.y, self.y_pred = labels.cpu().numpy(), preds.cpu().numpy()
 
-        data = {'actual_labels': self.actual_labels, 'prediction_labels': self.prediction_labels}
+        data = {'y': self.y, 'y_pred': self.y_pred}
         self.results = pd.DataFrame(data=data)
 
         for col in self.results.columns:

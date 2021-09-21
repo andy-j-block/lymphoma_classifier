@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 import pickle
-from ImageLoader import ImageLoader
+from ImageLoader import ImageLoader, label_decoder
 import pandas as pd
 import random
 from PIL import Image
@@ -37,8 +37,7 @@ class ImageData:
         else:
             self.image_df = ImageLoader('./Images').df
 
-        decoder = {i: cancer_type for (i, cancer_type) in enumerate(['CLL', 'FL', 'MCL'])}
-        self.image_df['cancer_type'] = self.image_df['cancer_type'].map(decoder)
+        self.image_df['cancer_type'] = self.image_df['cancer_type'].map(label_decoder())
         random.seed(st.session_state['SEED_VAL'])
 
     def random_sample(self):
