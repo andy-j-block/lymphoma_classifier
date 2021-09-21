@@ -4,3 +4,4 @@ __pycache__/
 Notebooks/test.ipynb
 *.obj
 *results.csv
+test*

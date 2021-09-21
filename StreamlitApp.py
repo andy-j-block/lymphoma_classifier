@@ -11,8 +11,11 @@ import cv2
 from typing import Tuple, Any
 from PytorchAlgos import PytorchAlgos
 import torch
+from KFolder import *
 
 # Initialization
+TORCH_DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 if 'SEED_VAL' not in st.session_state:
     st.session_state['SEED_VAL'] = 42
 
@@ -28,6 +31,7 @@ if 'apply_alb_trxs' not in st.session_state:
 class ImageData:
     transformed_image: Any
     PIL_image: Image
+    random_cancer_type: str
 
     def __init__(self):
         if 'image_loader.obj' in os.listdir(os.getcwd()):
@@ -37,14 +41,14 @@ class ImageData:
         else:
             self.image_df = ImageLoader('./Images').df
 
-        self.image_df['cancer_type'] = self.image_df['cancer_type'].map(label_decoder())
+        self.image_df['cancer_type'] = self.image_df['cancer_type']
         random.seed(st.session_state['SEED_VAL'])
 
     def random_sample(self):
         random_idx = random.randint(0, len(self.image_df))
         random_image = self.image_df['img_array'].iloc[random_idx]
-        random_cancer_type = self.image_df['cancer_type'].iloc[random_idx]
-        return random_image, random_cancer_type
+        self.random_cancer_type = self.image_df['cancer_type'].iloc[random_idx]
+        return random_image, self.random_cancer_type
 
     def capture_transformed_image(self, image):
         self.transformed_image = image
@@ -82,14 +86,37 @@ class TrainedModel:
 
         ### TODO fix the algorithm when model is selected
         pytorch_algos = PytorchAlgos()
-        self.model = pytorch_algos.RESNET34.model
-        self.model.load_state_dict(torch.load('./Model_State_Dicts/RESNET34/state_dict_1.pth'))
+        self.model = pytorch_algos.RESNET101.model
+        self.model.load_state_dict(torch.load('./best_model.pth'))
 
     def default_transforms(self):
         self.transformed_image = A.Compose([A.Normalize(mean=self.tl_means, std=self.tl_stds),
                                             A.LongestMaxSize(self.resize_factor),
                                             ToTensorV2()
                                             ])(image=self.image_data.transformed_image)['image']
+
+    def make_prediction(self):
+        data = {'cancer_type': [self.image_data.random_cancer_type], 'img_array': [self.transformed_image]}
+        input_df = pd.DataFrame(data=data)
+
+        dataset = PytorchImagesDataset(input_df)
+        dataloader = DataLoader(dataset, batch_size=1, num_workers=0)
+
+        for inputs, labels in dataloader:
+            inputs, labels = inputs.to(TORCH_DEVICE), labels.to(TORCH_DEVICE)
+
+            with torch.set_grad_enabled(False):
+                outputs = self.model(inputs)
+                _, preds = torch.max(outputs, 1)
+
+            decoder = label_decoder()
+            prediction = int(preds)
+            prediction = decoder[prediction]
+            self.image_data.random_cancer_type = decoder[self.image_data.random_cancer_type]
+
+        return self.image_data.random_cancer_type, prediction
+
+
 
 
 header = st.beta_container()
@@ -144,14 +171,15 @@ with run_model:
     trained_model.default_transforms()
 
     run_model_col, prediction_col, actual_col = st.beta_columns(3)
+    prediction_col.subheader('Predicted Type:')
+    actual_col.subheader('Actual Type:')
+
     run_model_col.subheader('')
     run_model_button = run_model_col.button('Run Model')
-
-    prediction_col.subheader('Predicted Type:')
-    prediction_col.write(f'the prediction')
-
-    actual_col.subheader('Actual Type:')
-    actual_col.write(f'the actual')
+    if run_model_button:
+        actual, prediction = trained_model.make_prediction()
+        prediction_col.write(prediction)
+        actual_col.write(actual)
 
 
 with results:

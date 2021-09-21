@@ -1,6 +1,5 @@
 import os
 import optuna
-import pandas as pd
 from optuna.trial import TrialState
 from ImageLoader import label_decoder
 from PytorchAlgos import *
@@ -10,6 +9,7 @@ import time
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
+
 
 TORCH_DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Torch device: {TORCH_DEVICE}')
