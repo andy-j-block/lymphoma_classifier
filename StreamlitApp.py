@@ -117,12 +117,11 @@ class TrainedModel:
         return self.image_data.random_cancer_type, prediction
 
 
-
-
 header = st.beta_container()
 image = st.beta_container()
 run_model = st.beta_container()
-results = st.beta_container()
+# results = st.beta_container()
+
 
 with header:
     st.title('Lymphoma Subtype Classifier')
@@ -137,6 +136,8 @@ with header:
 
 
 with image:
+
+    # define layout and add interactive elements
     image_col, selection_col = st.beta_columns([5, 2])
 
     selection_col.header('Transformations')
@@ -146,12 +147,20 @@ with image:
     rotate = selection_col.checkbox('Rotation')
     rgb_shift = selection_col.checkbox('RGB Shift')
 
+    # define transformations and their state sessions
     button_objs = [horizontal_flip, vertical_flip, color_jitter, rotate, rgb_shift]
     session_states = []
     for i, trx_state in enumerate(ALB_TRX_STATES):
         st.session_state[trx_state] = True if button_objs[i] else False
         session_states.append(st.session_state[trx_state])
 
+    # get new sample button changes seed value on change
+    selection_col.write('')
+    button = selection_col.button('Get new sample')
+    if button:
+        st.session_state['SEED_VAL'] += 1
+
+    # albumentations transformations and image display
     alb_trxs = AlbTrxs(*session_states)
     image_data = ImageData()
     image, cancer_type = image_data.random_sample()
@@ -159,11 +168,6 @@ with image:
     image_data.capture_transformed_image(image)
     image_data.create_PIL_image(image)
     image_col.image(image_data.PIL_image, use_column_width=True)
-
-    selection_col.write('')
-    button = selection_col.button('Get new sample')
-    if button:
-        st.session_state['SEED_VAL'] += 1
 
 
 with run_model:
@@ -180,8 +184,11 @@ with run_model:
         actual, prediction = trained_model.make_prediction()
         prediction_col.write(prediction)
         actual_col.write(actual)
+    else:
+        prediction_col.write('Waiting')
+        actual_col.write('Waiting')
 
 
-with results:
-
-    cross_entropy_col, stats_col = st.beta_columns(2)
+# with results:
+#
+#     cross_entropy_col, stats_col = st.beta_columns(2)
