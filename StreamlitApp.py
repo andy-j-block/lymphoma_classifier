@@ -2,16 +2,10 @@ import streamlit as st
 import os
 import pickle
 from ImageLoader import ImageLoader, label_decoder
-import pandas as pd
-import random
 from PIL import Image
-import albumentations as A
-from albumentations.pytorch.transforms import ToTensorV2
-import cv2
-from typing import Tuple, Any
 from PytorchAlgos import PytorchAlgos
-import torch
 from KFolder import *
+
 
 # Initialization
 TORCH_DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -84,7 +78,6 @@ class TrainedModel:
     def __init__(self, image_data: ImageData):
         self.image_data = image_data
 
-        ### TODO fix the algorithm when model is selected
         pytorch_algos = PytorchAlgos()
         self.model = pytorch_algos.RESNET101.model
         self.model.load_state_dict(torch.load('./best_model.pth'))
@@ -120,7 +113,6 @@ class TrainedModel:
 header = st.beta_container()
 image = st.beta_container()
 run_model = st.beta_container()
-# results = st.beta_container()
 
 
 with header:
@@ -189,6 +181,3 @@ with run_model:
         actual_col.write('Waiting')
 
 
-# with results:
-#
-#     cross_entropy_col, stats_col = st.beta_columns(2)

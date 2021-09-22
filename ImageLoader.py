@@ -49,14 +49,14 @@ def main(top_img_dir: str = './Images', pickle_=True):
 
     image_loader = ImageLoader(top_img_dir=top_img_dir)
 
-    # if pickle_:
-    #     with open('image_loader.obj', 'wb') as f:
-    #         pickle.dump(image_loader.df, f)
-    #         print('ImageLoader object saved successfully')
-    #
-    #     with open('overfit_data.obj', 'wb') as f:
-    #         pickle.dump(image_loader.overfit_df, f)
-    #         print('Overfit test data object saved successfully')
+    if pickle_:
+        with open('image_loader.obj', 'wb') as f:
+            pickle.dump(image_loader.df, f)
+            print('ImageLoader object saved successfully')
+
+        with open('overfit_data.obj', 'wb') as f:
+            pickle.dump(image_loader.overfit_df, f)
+            print('Overfit test data object saved successfully')
 
 
 if __name__ == '__main__':

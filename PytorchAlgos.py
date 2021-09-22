@@ -62,17 +62,19 @@ class CustomMobileNet(ModelAbstract, MobileNetV2):
 
 
 class PytorchAlgos:
+    """IMPORTANT NOTE: half of these algorithms should be commented out before training
+       so that the test data set isn't too small"""
 
     RESNET18: ResNet = CustomResNet(models.resnet18(pretrained=True))
     RESNET34: ResNet = CustomResNet(models.resnet34(pretrained=True))
     RESNET101: ResNet = CustomResNet(models.resnet101(pretrained=True))
 
-    # VGG13: VGG = CustomVGG(models.vgg13(pretrained=True))
-    # VGG16: VGG = CustomVGG(models.vgg16(pretrained=True))
-    # VGG13_BN: VGG = CustomVGG(models.vgg13_bn(pretrained=True))
-    # VGG16_BN: VGG = CustomVGG(models.vgg16_bn(pretrained=True))
-    #
-    # MOBILENET_V2: MobileNetV2 = CustomMobileNet(models.mobilenet_v2(pretrained=True))
+    VGG13: VGG = CustomVGG(models.vgg13(pretrained=True))
+    VGG16: VGG = CustomVGG(models.vgg16(pretrained=True))
+    VGG13_BN: VGG = CustomVGG(models.vgg13_bn(pretrained=True))
+    VGG16_BN: VGG = CustomVGG(models.vgg16_bn(pretrained=True))
+
+    MOBILENET_V2: MobileNetV2 = CustomMobileNet(models.mobilenet_v2(pretrained=True))
 
     def __init__(self):
         self.algos = [algo for algo in dir(self) if '__' not in algo]

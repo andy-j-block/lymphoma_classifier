@@ -1,4 +1,3 @@
-import os
 import optuna
 from optuna.trial import TrialState
 from ImageLoader import label_decoder
@@ -33,14 +32,13 @@ class ModelTrainer:
     n_inner_fold: int
 
     hyperparams: Dict[str, Any]
-    optimizer: Any #Union[Adam, Adagrad]
+    optimizer: Any
     scheduler: ReduceLROnPlateau
     batch_size: int
 
     y: np.ndarray
     y_pred: np.ndarray
 
-    ###TODO integrate data into here correctly
     def __init__(self, pytorch_algos: PytorchAlgos, kfold_idxs: KFoldIndices, transformations: AlbTrxs):
         self.pytorch_algos = pytorch_algos
         self.kfold_idxs = kfold_idxs
@@ -130,8 +128,6 @@ class ModelTrainer:
             self.scheduler.step(accuracy)
             print(f'Accuracy: {accuracy}')
             trial.report(accuracy, epoch)
-            # if trial.should_prune():
-            #     raise optuna.exceptions.TrialPruned()
 
             print(f'Train time: {time.time() - train_start}')
 
@@ -163,7 +159,7 @@ class ModelTrainer:
 
         """store results, save learnable parameters, nans to be filled in later"""
         self.results.loc[algo_name, :] = (best_trial.values, np.nan, best_trial.params.items(), param_importance,
-                                          self.train_dataset.length, self.valid_dataset.length, np.nan, self.n_outer_fold)
+                                          len(self.train_dataset), len(self.valid_dataset), np.nan, self.n_outer_fold)
         torch.save(self.model.state_dict(), f'./Model_State_Dicts/{algo_name}/state_dict_{n_inner_fold}.pth')
 
         print('Best trial:')
@@ -187,9 +183,6 @@ class ModelTrainer:
                 self.optuna_study(algo_name=algo_name, n_outer_fold=algo_num, n_inner_fold=n_inner_fold, show_param_importance=False)
 
     def model_selection(self):
-        # if 'tuned_results.csv' in os.listdir(os.getcwd()):
-        #     self.results = pd.read_csv('selected_results.csv', index_col=('algo', 'model_num'))
-
         """sort the results dataframe by validation accuracy, create tuples of the multiindex indices to drop, drop them"""
         self.results = self.results.sort_values(by='val_acc', ascending=False)
         drop_rows_list = [self.results.loc[algo].index[1:] for algo in self.pytorch_algos.algos]
@@ -198,12 +191,9 @@ class ModelTrainer:
         self.results = self.results.drop(drop_rows_tuples).reset_index(level=1)
 
     def model_scoring(self):
-        # if 'selected_results.csv' in os.listdir(os.getcwd()):
-        #     self.results = pd.read_csv('selected_results.csv', index_col='algo')
 
         for algo_num, algo_name in enumerate(self.pytorch_algos.algos):
             self.model = getattr(self.pytorch_algos, algo_name).model
-
             self.model.load_state_dict(torch.load(f'./Model_State_Dicts/{algo_name}/state_dict_{self.results["model_num"].loc[algo_name]}.pth'))
 
             self.set_dataloaders(phases='test', n_outer_fold=algo_num)
@@ -220,20 +210,16 @@ class ModelTrainer:
             accuracy = test_correct / len(self.test_dataset)
             print(f'Accuracy: {accuracy}')
             self.results['test_acc'].loc[algo_name] = float(accuracy)
-            self.results['test_set_len'].loc[algo_name] = self.test_dataset.length
+            self.results['test_set_len'].loc[algo_name] = len(self.test_dataset)
 
     def get_predictions(self):
         """first get the best model, run the best model again and save predictions"""
-        # if 'scored_results.csv' in os.listdir(os.getcwd()):
-        #     self.results = pd.read_csv('scored_results.csv', index_col='algo')
 
         self.results = self.results.reset_index()
         self.results = self.results.sort_values(by='test_acc', ascending=False).iloc[3]
 
-        self.model = self.pytorch_algos.RESNET101.model
-        self.model.load_state_dict(torch.load(f'./Model_State_Dicts/RESNET101/state_dict_0.pth')) #{self.results["n_outer_fold"]}.pth')
-        # self.model = getattr(self.pytorch_algos, self.results['algo']).model
-        # self.model.load_state_dict(torch.load(f'./Model_State_Dicts/{self.results["algo"]}/state_dict_0.pth')) #{self.results["n_outer_fold"]}.pth'))
+        self.model = getattr(self.pytorch_algos, self.results['algo']).model
+        self.model.load_state_dict(torch.load(f'./Model_State_Dicts/{self.results["algo"]}/{self.results["n_outer_fold"]}.pth'))
 
         self.set_dataloaders(phases='test', n_outer_fold=0)
         self.model.eval()
@@ -252,8 +238,5 @@ class ModelTrainer:
         for col in self.results.columns:
             self.results[col] = self.results[col].map(label_decoder())
 
-        self.save_results('final_results.csv')
-
     def save_results(self, filename: str):
         self.results.to_csv(filename)
-

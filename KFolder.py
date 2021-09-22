@@ -29,7 +29,7 @@ class AlbTrxs:
     tl_means: Tuple[float, float, float] = (0.485, 0.456, 0.406)
     tl_stds: Tuple[float, float, float] = (0.229, 0.224, 0.225)
     n_passes: int
-    p: float = 0.0  # need to initialize
+    p: float = 0.0  # initialize
 
     def __init__(self):
         self.train_trxs = A.Compose([A.HorizontalFlip(p=self.p),
@@ -67,7 +67,7 @@ class KFoldIndices(KFold):
         self.test_idxs = {}
 
         i = 0
-        # get indices of train and test splits and store in dicts
+        """get indices of train and test splits and store in dicts"""
         for outer_train_idxs, test_idxs in self.split(self.image_df):
             self.outer_train_idxs[i] = outer_train_idxs
             self.test_idxs[i] = test_idxs
@@ -79,7 +79,7 @@ class KFoldIndices(KFold):
         self.train_idxs = {}
         self.valid_idxs = {}
 
-        # get indices of train and val splits and store in dicts
+        """get indices of train and val splits and store in dicts"""
         i = 0
         for n_fold, outer_train_idxs in self.outer_train_idxs.items():
             j = 0
@@ -88,9 +88,6 @@ class KFoldIndices(KFold):
                 self.valid_idxs[(i, j)] = outer_train_idxs[valid_idxs]
                 j += 1
             i += 1
-
-
-##############
 
 
 class KFoldedDatasets(ABC):
@@ -103,7 +100,7 @@ class KFoldedDatasets(ABC):
         self.image_df = kfold_idxs.image_df
         self.kfold_idxs = kfold_idxs
         self.n_outer_fold, self.n_inner_fold = n_outer_fold, n_inner_fold
-        self.nkf_df = self.get_nkf_dataframe(self.n_outer_fold, self.n_inner_fold)  ###TODO is this necessary?
+        self.nkf_df = self.get_nkf_dataframe(self.n_outer_fold, self.n_inner_fold)
 
     @abstractmethod
     def get_nkf_dataframe(self, n_outer_fold: int, n_inner_fold: int):
@@ -117,7 +114,7 @@ class DFTrainKFolded(KFoldedDatasets):
         super().__init__(n_outer_fold, n_inner_fold, kfold_idxs)
 
     def get_nkf_dataframe(self, n_outer_fold: int, n_inner_fold: int):
-        # get the full dataframes from the train and valid idxs
+        """get the full dataframes from the train and valid idxs"""
         df = self.image_df.iloc[self.kfold_idxs.train_idxs[(n_outer_fold, n_inner_fold)]]
         return df.reset_index(drop=True)
 
@@ -154,7 +151,7 @@ class DataloaderBaseClass(ABC):
     @abstractmethod
     def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
                  transformations: AlbTrxs, batch_size: int, num_workers: int = 0):
-        self.nkf_df = kfolded_data.nkf_df  ###TODO determine if this line in necessary
+        self.nkf_df = kfolded_data.nkf_df
         self.transformations = transformations
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -226,39 +223,14 @@ class DFTestDataloader(DataloaderBaseClass):
         self.create_dataloader()
 
 
-### TODO finish this dataloader
 class OverfitDataloader(DataloaderBaseClass):
     def __init__(self, kfolded_data: Union[DFTrainKFolded, DFValidKFolded, DFTestKFolded],
                  transformations: AlbTrxs, batch_size: int):
         super().__init__(kfolded_data, transformations, batch_size)
         self.normalize_resize_data()
-        # self.create_dataloader()
 
     def normalize_resize_data(self):
         rand_idx = random.randint(0, len(self.nkf_df))
         rand_entry = self.nkf_df.iloc[[rand_idx]].copy(deep=True)
         rand_entry.at[rand_idx, 'img_array'] = self.transformations.normalize_resize_tensorize(image=rand_entry.at[rand_idx, 'img_array'])['image']
         self.transformed_data = rand_entry
-
-        # data = {cols[0]: [rand_entry[cols[0]]],
-        #         cols[1]: [transformed_data]}
-        # self.transformed_data = pd.DataFrame.from_dict(data=data)
-
-##############
-
-# DEBUG:
-
-# kfold_outer = OuterKFolder(n_splits=5,
-#                            shuffle=True,
-#                            random_state=42)
-#
-# kfold_inner = InnerKFolder(n_splits=5,
-#                            shuffle=True,
-#                            random_state=42)
-
-
-# print(kfold_inner.valid_idxs[0])
-# print(kfold_inner.valid_idxs[1])
-# print(set(kfold_inner.train_idxs[1]).intersection(set(kfold_inner.valid_idxs[1])))
-# print(len(kfold_inner.train_idxs[0]))
-# print(len(kfold_inner.valid_idxs[0]))
