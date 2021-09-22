@@ -120,9 +120,8 @@ with header:
     st.write("""
     This app uses a trained model to classify sample Non-Hodgkins Lymphoma biopsy images into three sub-types: \
     Chronic Lymphocytic Leukemia (CLL), Follicular Lymphoma (FL), or Mantle Cell Lymphoma (MCL).  Toggle the \
-    "Transformations" buttons to alter the image as you like before clicking the "Run Model" button, which will run the \
-    model on the sample image.  The predicted and actual type will appear alongside.  See below the cross-entropy loss \
-    graph for an understanding of what the model was "thinking", as well as some of the model performance statistics.
+    "Transformations" buttons to alter the image as you like before clicking the "Run Model" button, which returns \
+    the predicted and actual types.
     """)
     st.write('')
 
