@@ -1,18 +1,20 @@
 # Lymphoma Subtype Classifier
 
-This repo is a work in progess.  It will be a multi-class classifier looking at three different types of Lymphoma and
-classifying their sub-type via its immunostained biopsy image.
+This repository contains a multiclass classifier powered by a convolutional neural network that has been trained to 
+identify three unique subtypes of Non-Hodgkin's Lymphoma, specifically Chronic Lymphocytic Leukemia (CLL), Follicular 
+Lymphoma (FL), and Mantle Cell Lymphoma (MCL).
 
 ## Motivation
 
 I was diagnosed and treated for Hodgkin's Lymphoma back in 2013-14 and it left an indelible mark on me.  Thankfully I've
-been no evidence of disease for almost a decade now, but the experience sparked a newfound interest in human biology and
-disease.
+been no evidence of disease for almost a decade now, but the experience led me to discover a newfound interest in human 
+biology and disease.
 
 Of the myriad tests and procedures I had, one of the fundamental steps that any cancer patient undergoes is the soft
 tissue biopsy, where a small snippet of the tumor is surgically extracted and analyzed to determine the exact type and
 subtype of cancer the patient has.  This analysis is typically done a pathologist and while these folks are very good at
-their jobs, they are of course prone to error as all humans are.
+their jobs, they are of course prone to error as all humans are.  This effort is not designed to replace the human being
+doing the important work of classifying cancer types, but to supplement their work and provide a "second opinion".
 
 ## Results
 
@@ -45,7 +47,9 @@ connected classification layer.  I tested this algorithm against numerous other 
 
 ### Hyperparameter Grid
 
-I used the Optuna package to run training loop trials over the hyperparameter grid I defined.
+I used the Optuna package to run training loop trials over the hyperparameter grid I defined.  Among the hyperparameters
+were the choice of an optimizer, the batch size, the learning rate of course, the number of times the training data
+passed through the data augmentation pipeline, etc.
 
 
 ### Tools Used
@@ -97,7 +101,7 @@ technology in biomedicine : a publication of the IEEE Engineering in Medicine an
 ### Image Loading
 
 The image loading for this project is performed using Pandas, PIL, and optionally, Pickle.  The dataset is sourced from
-the `'./Images'` dictory, containing subdirectories for each of the Lymphoma types.
+the `'./Images'` directory, containing subdirectories for each of the Lymphoma types.
 
 ### Albumentations
 
@@ -113,19 +117,38 @@ tranform in the pipeline is applied to the input image.  For some descriptive st
 
 ### Nested K-Fold
 
+I utilized SciKit-Learn's k-fold functions to get the shuffled indices of the original dataframe to build training,
+validation, and testing sets.  Ordinarily, getting the indices is a bit redundant because you can instead just return
+the k-folded dataframes, but because I was doing data augmentation on the training set, I needed to have account of just
+the indices.
+
 The number of outer loops was defined by the number of algorithms I was testing.  In order to maintain a reasonable test
-set size and increase my confidence in the performance statistics, I tested the algorithms in batches.
+set size and increase my confidence in the performance statistics, I tested the algorithms in batches, so instead of 
+testing all seven algorithms at once, I tested them in groups of three and four.
 
 ### Algorithms
 
 Trained models of seven different algorithm types, ResNet18, ResNet34, ResNet101, MobileNetV2, VGG13, VGG13 with batch
-norm, VGG16, and VGG16 with batch norm.  Since the dataset is so small, I utilized pretrained models.
+norm, VGG16, and VGG16 with batch norm.  The dataset I was working with was not sufficiently large that I could
+successfully train a deep network, so I utilized pretrained models instead.  This meant that I was training only the 
+output layer, which was customized for each family of algorithm.
 
 ### Training Loop
 
+Created a custom PyTorch Dataset class, created a Dataloader based off of this Dataset class.
+
 Because of the richness and size of the images, I did not have the luxury of creating dataloaders to send to the GPU to
-be stored in memory.  Created a custom PyTorch Dataset class, created a Dataloader based off of this Dataset class.
+be stored in memory.  This meant that I needed to create the dataset and dataloader objects within each training loop,
+which was a substantial design challenge on its own.
 
 ### Streamlit Web App
+
+As a final product, I built a web app with Streamlit that is designed to mimic the experience of the pathologist, where
+a new biopsy slide appears and it's up to them to discern the cancer type.  On the left hand side is the sample image
+and the right contains the transformations that can be performed on the image, to try to confuse the model into thinking
+the sample is from a different subtype.  Pressing the "Run Model" button will run the image through the trained model
+and output a predicted label, alongside the actual label.  It's not a perfect model of course, so it can be fooled, but
+generally speaking the model has a high degree of accuracy as evidenced by the performance statistics and that should be
+evident when you use the app.
 
 In order to launch the web app, use the command `streamlit run /path/to/project/StreamlitApp.py`.
