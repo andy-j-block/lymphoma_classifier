@@ -22,18 +22,30 @@ I was able to achieve an acurracy, precision, and recall of about 75% on a pretr
 fully connected classification layer.  Here are confusion matrices both for the classifier as a whole and then by
 individual class:
 
-![Whoel Classifier Confusion Matrix](Documents/README_Resources/conf_matrix_whole.png)
+<p align="center">
+  <img src="Documents/README_Resources/conf_matrix_whole.png" />
+</p>
 
-![By Class Confusion Matrices](Documents/README_Resources/conf_matrix_by_class.png)
+<p align="center">
+  <img src="Documents/README_Resources/conf_matrix_by_class.png" />
+</p>
 
 Here's the tabular statistics for the entire classifier:
 
+<div align="center">
+  <table>
+  
 |     Accuracy      |   Weighted Precision   |   Weighted Recall  |   Weighted F1 Score  |
 |       :---:       |         :---:          |        :---:       |       :----:         |
 |        77%        |          77%           |         76%        |         77%          |
 
-
+  </table>
+</div>
+  
 And then by individual class:
+
+<div align="center">
+  <table>
 
 |      |  Accuracy |   Precision   |   Recall  |  F1 Score  |
 | :--  |   :--:    |    :---:      |   :---:   |    :---:   |
@@ -41,6 +53,8 @@ And then by individual class:
 | FL   |    87%    |      85%      |    77%    |     81%    |
 | MCL  |    84%    |      76%      |    68%    |     71%    |
 
+  </table>
+</div>
 
 For a more thorough look into the results of this project, please explore the notebook titled `ResultsAnalysis.ipynb` 
 in the "Notebooks" directory.
@@ -78,32 +92,51 @@ will download all the required packages that the user can utilize via the comman
 The dataset consists of immunostained biopsy slides of three different types of Non-Hodgkin's Lymphoma: Chronic
 Lymphocytic Leukemia, Follicular Lymphoma, and Mantle Cell Lymphoma.
 
+<div align="center">
+  <table>
+
 |     |   Count   |   Percentage  |
 | :-- |   :---:   |     :---:     |
 | CLL |    113    |      30%      |
 | FL  |    139    |      37%      |
 | MCL |    122    |      33%      |
 
+  </table>
+</div>
+
 Here are some sample images:
 
-![Sample Biopsy Images by Type](Documents/README_Resources/sample_images_by_type.png)
+<p align="center">
+  <img src="Documents/README_Resources/sample_images_by_type.png" />
+</p>
 
 The dimensions of all the images in the dataset are equal, there are no nulls in any of the image arrays, and their color
 intensities range from 0 to 255 (0x00-0xFF in hex) as expected.
 
 I then examined the distribution of RGB color intesities by cancer type to try to distinguish a pattern between the types:
 
-![Color Histograms by Type](Documents/README_Resources/color_hists_by_class.png)
+<p align="center">
+  <img src="Documents/README_Resources/color_hists_by_class.png" />
+</p>
 
-![Color Histograms by Type](Documents/README_Resources/color_means_by_type.png)
+<p align="center">
+  <img src="Documents/README_Resources/color_means_by_type.png" />
+</p>
+
 
 Standard deviations by cancer type and color:
+
+<div align="center">
+  <table>
 
 |    |    CLL   |     FL     |   MCL     | 
 | :- |   :---:  |    :---:   |   :---:   | 
 | r  |   39.24  |    41.58   |   40.76   | 
 | g  |   40.47  |    39.84   |   43.20   |
 | b  |   31.59  |    33.23   |   33.99   | 
+
+  </table>
+</div>
 
 The original image dataset can be found here: 
 
