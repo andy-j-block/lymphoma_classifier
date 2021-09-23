@@ -1,0 +1,5 @@
+Standard deviations by cancer type and color:
+     CLL     FL    MCL
+r  39.24  41.58  40.76
+g  40.47  39.84  43.20
+b  31.59  33.23  33.99

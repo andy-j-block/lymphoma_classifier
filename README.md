@@ -19,7 +19,14 @@ doing the important work of classifying cancer types, but to supplement their wo
 ## Results
 
 I was able to achieve an acurracy, precision, and recall of about 75% on a pretrained ResNet101 algorithm with a custom 
-fully connected classification layer.  Here are the actual statistics for the entire classifier:
+fully connected classification layer.  Here are confusion matrices both for the classifier as a whole and then by
+individual class:
+
+![Whoel Classifier Confusion Matrix](Documents/README_Resources/conf_matrix_whole.png)
+
+![By Class Confusion Matrices](Documents/README_Resources/conf_matrix_by_class.png)
+
+Here's the tabular statistics for the entire classifier:
 
 |     Accuracy      |   Weighted Precision   |   Weighted Recall  |   Weighted F1 Score  |
 |       :---:       |         :---:          |        :---:       |       :----:         |
@@ -83,6 +90,20 @@ Here are some sample images:
 
 The dimensions of all the images in the dataset are equal, there are no nulls in any of the image arrays, and their color
 intensities range from 0 to 255 (0x00-0xFF in hex) as expected.
+
+I then examined the distribution of RGB color intesities by cancer type to try to distinguish a pattern between the types:
+
+![Color Histograms by Type](Documents/README_Resources/color_hists_by_class.png)
+
+![Color Histograms by Type](Documents/README_Resources/color_means_by_type.png)
+
+Standard deviations by cancer type and color:
+
+|    |    CLL   |     FL     |   MCL     | 
+| :- |   :---:  |    :---:   |   :---:   | 
+| r  |   39.24  |    41.58   |   40.76   | 
+| g  |   40.47  |    39.84   |   43.20   |
+| b  |   31.59  |    33.23   |   33.99   | 
 
 The original image dataset can be found here: 
 
