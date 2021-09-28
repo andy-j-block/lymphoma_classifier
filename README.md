@@ -18,7 +18,7 @@ doing the important work of classifying cancer types, but to supplement their wo
 
 ## Results
 
-#### PLACEHOLDER FOR STREAMLIT ICON LINK
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/andy-j-block/lymphoma_classifier)
 
 I was able to achieve an acurracy, precision, and recall of about 75% on a pretrained ResNet101 algorithm with a custom 
 fully connected classification layer.  Here are confusion matrices both for the classifier as a whole and then by
