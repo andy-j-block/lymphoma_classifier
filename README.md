@@ -18,6 +18,8 @@ doing the important work of classifying cancer types, but to supplement their wo
 
 ## Results
 
+#### PLACEHOLDER FOR STREAMLIT ICON LINK
+
 I was able to achieve an acurracy, precision, and recall of about 75% on a pretrained ResNet101 algorithm with a custom 
 fully connected classification layer.  Here are confusion matrices both for the classifier as a whole and then by
 individual class:
@@ -205,4 +207,4 @@ and output a predicted label, alongside the actual label.  It's not a perfect mo
 generally speaking the model has a high degree of accuracy as evidenced by the performance statistics and that should be
 evident when you use the app.
 
-In order to launch the web app, use the command `streamlit run /path/to/project/StreamlitApp.py`.
+In order to launch the web app, use the command `streamlit run /path/to/project/streamlit_app.py`.

@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 import pickle
-from ImageLoader import ImageLoader, label_decoder
+from ImageLoader import ImageLoader, label_encoder, label_decoder
 from PIL import Image
 from PytorchAlgos import PytorchAlgos
 from KFolder import *
@@ -30,12 +30,12 @@ class ImageData:
     def __init__(self):
         if 'image_loader.obj' in os.listdir(os.getcwd()):
             with open('image_loader.obj', 'rb') as f:
-                self.image_df = pickle.load(f)
+                self.image_df = pickle.load(f).df
 
         else:
             self.image_df = ImageLoader('./Images').df
 
-        self.image_df['cancer_type'] = self.image_df['cancer_type']
+        self.image_df['cancer_type'] = self.image_df['cancer_type'].map(label_encoder())
         random.seed(st.session_state['SEED_VAL'])
 
     def random_sample(self):
@@ -78,9 +78,10 @@ class TrainedModel:
     def __init__(self, image_data: ImageData):
         self.image_data = image_data
 
-        pytorch_algos = PytorchAlgos()
+        pytorch_algos = PytorchAlgos(resnet18=False, resnet34=False, vgg13=False, vgg16=False, vgg13_bn=False,
+                                     vgg16_bn=False, mobilenet_v2=False)
         self.model = pytorch_algos.RESNET101.model
-        self.model.load_state_dict(torch.load('./best_model.pth'))
+        self.model.load_state_dict(torch.load('./best_model.pth', map_location=TORCH_DEVICE))
 
     def default_transforms(self):
         self.transformed_image = A.Compose([A.Normalize(mean=self.tl_means, std=self.tl_stds),
@@ -110,9 +111,9 @@ class TrainedModel:
         return self.image_data.random_cancer_type, prediction
 
 
-header = st.beta_container()
-image = st.beta_container()
-run_model = st.beta_container()
+header = st.container()
+image = st.container()
+run_model = st.container()
 
 
 with header:
@@ -129,7 +130,7 @@ with header:
 with image:
 
     # define layout and add interactive elements
-    image_col, selection_col = st.beta_columns([5, 2])
+    image_col, selection_col = st.columns([5, 2])
 
     selection_col.header('Transformations')
     horizontal_flip = selection_col.checkbox('Horizontal Flip')
@@ -165,7 +166,7 @@ with run_model:
     trained_model = TrainedModel(image_data)
     trained_model.default_transforms()
 
-    run_model_col, prediction_col, actual_col = st.beta_columns(3)
+    run_model_col, prediction_col, actual_col = st.columns(3)
     prediction_col.subheader('Predicted Type:')
     actual_col.subheader('Actual Type:')
 
@@ -178,5 +179,3 @@ with run_model:
     else:
         prediction_col.write('Waiting')
         actual_col.write('Waiting')
-
-

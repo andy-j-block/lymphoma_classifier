@@ -65,18 +65,35 @@ class PytorchAlgos:
     """IMPORTANT NOTE: half of these algorithms should be commented out before training
        so that the test data set isn't too small"""
 
-    RESNET18: ResNet = CustomResNet(models.resnet18(pretrained=True))
-    RESNET34: ResNet = CustomResNet(models.resnet34(pretrained=True))
-    RESNET101: ResNet = CustomResNet(models.resnet101(pretrained=True))
+    def __init__(self, resnet18=True, resnet34=True, resnet101=True,
+                 vgg13=True, vgg16=True, vgg13_bn=True, vgg16_bn=True, mobilenet_v2=True):
 
-    VGG13: VGG = CustomVGG(models.vgg13(pretrained=True))
-    VGG16: VGG = CustomVGG(models.vgg16(pretrained=True))
-    VGG13_BN: VGG = CustomVGG(models.vgg13_bn(pretrained=True))
-    VGG16_BN: VGG = CustomVGG(models.vgg16_bn(pretrained=True))
+        self.resnet18__, self.resnet34__, self.resnet101__, self.vgg13__, self.vgg16__, self.vgg13_bn__, self.vgg16_bn__, \
+            self.mobilenet_v2__ = resnet18, resnet34, resnet101, vgg13, vgg16, vgg13_bn, vgg16_bn, mobilenet_v2
 
-    MOBILENET_V2: MobileNetV2 = CustomMobileNet(models.mobilenet_v2(pretrained=True))
+        if self.resnet18__:
+            self.RESNET18 = CustomResNet(models.resnet18(pretrained=True))
 
-    def __init__(self):
+        if self.resnet34__:
+            self.RESNET34 = CustomResNet(models.resnet34(pretrained=True))
+
+        if self.resnet101__:
+            self.RESNET101 = CustomResNet(models.resnet101(pretrained=True))
+
+        if self.vgg13__:
+            self.VGG13 = CustomVGG(models.vgg13(pretrained=True))
+
+        if self.vgg16__:
+            self.VGG16 = CustomVGG(models.vgg16(pretrained=True))
+
+        if self.vgg13_bn__:
+            self.VGG13_BN = CustomVGG(models.vgg13_bn(pretrained=True))
+
+        if self.vgg16_bn__:
+            self.VGG16_BN = CustomVGG(models.vgg16_bn(pretrained=True))
+
+        if self.mobilenet_v2__:
+            self.MOBILENET_V2 = CustomMobileNet(models.mobilenet_v2(pretrained=True))
+
         self.algos = [algo for algo in dir(self) if '__' not in algo]
         self.n_algos: int = len(self.algos)
-
