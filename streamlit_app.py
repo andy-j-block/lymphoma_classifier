@@ -5,6 +5,17 @@ from ImageLoader import ImageLoader, label_encoder, label_decoder
 from PIL import Image
 from PytorchAlgos import PytorchAlgos
 from KFolder import *
+import urllib.request
+
+
+@st.cache
+def download1(url1):
+    url = url1
+    filename = url.split('/')[-1]
+    urllib.request.urlretrieve(url, filename)
+
+
+download1('https://download.pytorch.org/models/resnet101-5d3b4d8f.pth')
 
 
 # Initialization
