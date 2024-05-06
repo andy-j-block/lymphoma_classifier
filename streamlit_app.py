@@ -7,18 +7,6 @@ from ImageLoader import ImageLoader, label_encoder, label_decoder
 from PIL import Image
 from PytorchAlgos import PytorchAlgos
 from KFolder import *
-# import urllib.request
-
-
-# @st.cache
-# def download1(url1):
-#     url = url1
-#     filename = url.split('/')[-1]
-#     urllib.request.urlretrieve(url, filename)
-#
-#
-# download1('https://download.pytorch.org/models/resnet101-5d3b4d8f.pth')
-
 
 # Initialization
 TORCH_DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -68,14 +56,14 @@ def apply_alb_trxs(image_: np.ndarray, horizontal_flip: bool, vertical_flip: boo
 def create_model(torch_device: torch.device):
     pytorch_algos = PytorchAlgos(resnet101=True, resnet18=False, resnet34=False, vgg13=False, vgg16=False,
                                  vgg13_bn=False, vgg16_bn=False, mobilenet_v2=False)
-    model = pytorch_algos.RESNET101.model
-    model.load_state_dict(torch.load('./best_model.pth', map_location=torch_device))
-    return model
+    model_ = pytorch_algos.RESNET101.model
+    model_.load_state_dict(torch.load('./best_model.pth', map_location=torch_device))
+    return model_
 
 
 @st.experimental_memo
-def pytoch_default_transforms(image_: np.ndarray, means: Tuple[float, float, float],
-                              stds: Tuple[float, float, float], resize_factor: int) -> np.ndarray:
+def pytorch_default_transforms(image_: np.ndarray, means: Tuple[float, float, float],
+                               stds: Tuple[float, float, float], resize_factor: int) -> np.ndarray:
     return A.Compose([A.Normalize(mean=means, std=stds),
                       A.LongestMaxSize(resize_factor),
                       ToTensorV2()
@@ -90,19 +78,21 @@ def make_prediction(_model_, _image_: np.ndarray, cancer_type: int, torch_device
     dataset = PytorchImagesDataset(input_df)
     dataloader = DataLoader(dataset, batch_size=1, num_workers=0)
 
+    prediction_ = ''
+
     for inputs, labels in dataloader:
         inputs, labels = inputs.to(torch_device), labels.to(torch_device)
 
         with torch.set_grad_enabled(False):
             outputs = _model_(inputs)
             _, preds = torch.max(outputs, 1)
+            st.write(outputs)
 
         decoder = label_decoder()
-        prediction = int(preds)
-        prediction = decoder[prediction]
+        prediction_ = decoder[int(preds)]
         cancer_type = decoder[cancer_type]
 
-    return cancer_type, prediction
+    return cancer_type, prediction_
 
 
 header = st.container()
@@ -158,7 +148,7 @@ with image:
 
 with run_model:
     model = create_model(TORCH_DEVICE)
-    IMAGE = pytoch_default_transforms(IMAGE, MEANS, STDS, RESIZE_FACTOR)
+    IMAGE = pytorch_default_transforms(IMAGE, MEANS, STDS, RESIZE_FACTOR)
 
     run_model_col, prediction_col, actual_col = st.columns(3)
     prediction_col.subheader('Predicted Type:')
